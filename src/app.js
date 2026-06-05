@@ -248,7 +248,7 @@ function renderContentGeneratorLanding() {
           <p class="description">Received ${selectedProductsPayload.length} selectedProducts[] item(s).</p>
         </div>
       </section>
-      <a class="back-link" href="../">Back to Product Command Center</a>
+      <a class="back-link" href="/">Back to Product Command Center</a>
     </main>
   `;
 }
@@ -313,14 +313,14 @@ function attachProductCommandCenterEvents() {
     }));
 
     sessionStorage.setItem('selectedProducts', JSON.stringify(selectedProductsPayload));
-    window.location.href = 'content-generator/';
+    window.location.href = '/content-generator';
   });
 }
 
 function render() {
   const root = document.querySelector('#root');
 
-  if (window.location.pathname.replace(/\/$/, '').endsWith('/content-generator')) {
+  if (window.location.pathname === '/content-generator') {
     root.innerHTML = renderContentGeneratorLanding();
     return;
   }
