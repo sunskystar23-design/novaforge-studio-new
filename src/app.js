@@ -406,6 +406,72 @@ function renderImportLinks() {
   `;
 }
 
+
+function renderDataSourceStatusPanel() {
+  if (activeTab !== 'auto') return '';
+
+  const rows = [
+    ['TikTok', 'src/app.js local dataset', 'Not connected', 'TikTok Shop / Kalodata / backend API'],
+    ['Shopee', 'src/app.js local dataset', 'Not connected', 'Shopee Affiliate/Product API or backend API'],
+    ['Lazada', 'src/app.js local dataset', 'Not connected', 'Lazada Affiliate/Product API or backend API'],
+  ];
+
+  return `
+    <section class="data-source-panel" aria-label="Data Source Status">
+      <div class="data-source-header">
+        <div>
+          <p class="eyebrow">Data Source Status</p>
+          <h2>Local Preview Dataset Only</h2>
+          <p class="source-label">TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.</p>
+        </div>
+        <span class="local-preview-badge">LOCAL PREVIEW DATA — NOT LIVE PLATFORM DATA</span>
+      </div>
+
+      <div class="platform-status-grid" aria-label="Platform connector summary">
+        <article>
+          <h3>TikTok</h3>
+          <p>Local Preview Dataset / Real API not connected</p>
+        </article>
+        <article>
+          <h3>Shopee</h3>
+          <p>Local Preview Dataset / Real API not connected</p>
+        </article>
+        <article>
+          <h3>Lazada</h3>
+          <p>Local Preview Dataset / Real API not connected</p>
+        </article>
+      </div>
+
+      <div class="data-source-table-wrap">
+        <table class="data-source-table">
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Current Source</th>
+              <th>Real Connector Status</th>
+              <th>Required Integration</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map(
+                ([platform, currentSource, connectorStatus, requiredIntegration]) => `
+                  <tr>
+                    <td>${escapeHtml(platform)}</td>
+                    <td>${escapeHtml(currentSource)}</td>
+                    <td>${escapeHtml(connectorStatus)}</td>
+                    <td>${escapeHtml(requiredIntegration)}</td>
+                  </tr>
+                `,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
 function renderDiscoveryResults() {
   const products = activeTab === 'auto' ? getDiscoveryResults() : getImportedProducts();
   const heading = activeTab === 'auto' ? 'Discovery Results' : 'Imported Products';
@@ -484,6 +550,7 @@ function renderProductCommandCenter() {
             <button class="${activeTab === 'import' ? 'active' : ''}" data-tab="import" type="button">Import Links</button>
           </div>
           ${activeTab === 'auto' ? renderDiscoveryFilters() : renderImportLinks()}
+          ${renderDataSourceStatusPanel()}
           ${renderDiscoveryResults()}
         </div>
         ${renderSelectedProducts()}
