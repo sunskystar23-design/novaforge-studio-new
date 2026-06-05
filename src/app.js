@@ -3,6 +3,17 @@ const productStorageKey = 'selectedProducts';
 const platformOptions = ['All Platforms', 'TikTok', 'Shopee', 'Lazada'];
 const targetOptions = ['All', 'High Commission', 'High Profit', 'Best Seller', 'Trending', 'New Arrival'];
 const importLinks = Array.from({ length: maxSelectedProducts }, () => '');
+const realDataSourceConfig = {
+  status: 'not-connected',
+  notice: 'Real Data Source Not Connected',
+  providers: {
+    kalodataApi: { label: 'Kalodata API', status: 'Not connected', endpoint: '' },
+    tiktokShopProvider: { label: 'TikTok Shop data provider', status: 'Not connected', endpoint: '' },
+    shopeeProductAffiliateApi: { label: 'Shopee product/affiliate API', status: 'Not connected', endpoint: '' },
+    lazadaProductAffiliateApi: { label: 'Lazada product/affiliate API', status: 'Not connected', endpoint: '' },
+    externalJsonDatabase: { label: 'External JSON database', status: 'Optional user-provided JSON feed', endpoint: '' },
+  },
+};
 
 let activeTab = 'auto';
 let platformFilter = 'All Platforms';
@@ -267,17 +278,40 @@ function escapeSvg(value) {
     .replaceAll('"', '&quot;');
 }
 
+function productSelectionKey(product) {
+  return product.id || product.sourceUrl || product.productUrl || product.title;
+}
+
+function dedupeProducts(products) {
+  const seenProductKeys = new Set();
+
+  return products
+    .map((product) => normalizeProduct(product))
+    .filter((product) => {
+      const selectionKey = productSelectionKey(product);
+      if (!selectionKey || seenProductKeys.has(selectionKey)) return false;
+      seenProductKeys.add(selectionKey);
+      return true;
+    })
+    .slice(0, maxSelectedProducts);
+}
+
 function readSelectedProducts() {
   try {
     const savedProducts = JSON.parse(localStorage.getItem(productStorageKey) || '[]');
-    return Array.isArray(savedProducts) ? savedProducts.slice(0, maxSelectedProducts) : [];
+    return Array.isArray(savedProducts) ? dedupeProducts(savedProducts) : [];
   } catch {
     return [];
   }
 }
 
 function saveSelectedProducts() {
+  selectedProducts = dedupeProducts(selectedProducts);
   localStorage.setItem(productStorageKey, JSON.stringify(selectedProducts.slice(0, maxSelectedProducts)));
+}
+
+function syncSelectedProductsFromStorage() {
+  selectedProducts = readSelectedProducts();
 }
 
 function getUrlObject(url) {
@@ -319,7 +353,7 @@ function normalizeProduct(rawProduct) {
   const title = rawProduct.title || 'Untitled Product';
 
   return {
-    id: rawProduct.id,
+    id: rawProduct.id || sourceUrl || `${platform}-${title}`,
     platform,
     title,
     image: rawProduct.image || platformImage(platform, title),
@@ -388,25 +422,31 @@ function getDiscoveryResults() {
 }
 
 function isSelected(product) {
-  return selectedProducts.some((selectedProduct) => selectedProduct.id === product.id);
+  const normalizedProduct = normalizeProduct(product);
+  const selectionKey = productSelectionKey(normalizedProduct);
+
+  return selectedProducts.some((selectedProduct) => productSelectionKey(selectedProduct) === selectionKey);
 }
 
 function toggleProduct(product) {
   const normalizedProduct = normalizeProduct(product);
+  const selectionKey = productSelectionKey(normalizedProduct);
 
-  if (!normalizedProduct.supported) return;
+  if (!normalizedProduct.supported || !selectionKey) return;
 
   if (isSelected(normalizedProduct)) {
-    selectedProducts = selectedProducts.filter((selectedProduct) => selectedProduct.id !== normalizedProduct.id);
+    selectedProducts = selectedProducts.filter((selectedProduct) => productSelectionKey(selectedProduct) !== selectionKey);
   } else if (selectedProducts.length < maxSelectedProducts) {
     selectedProducts = [...selectedProducts, normalizedProduct];
   }
 
+  saveSelectedProducts();
   render();
 }
 
 function removeSelectedProduct(productId) {
   selectedProducts = selectedProducts.filter((product) => product.id !== productId);
+  saveSelectedProducts();
   render();
 }
 
@@ -513,6 +553,45 @@ function renderImportLinks() {
   `;
 }
 
+
+
+function renderRealDataSourceSetupPanel() {
+  if (activeTab !== 'auto') return '';
+
+  const providerRows = Object.values(realDataSourceConfig.providers)
+    .map(
+      (provider) => `
+        <tr>
+          <td>${escapeHtml(provider.label)}</td>
+          <td>${escapeHtml(provider.status)}</td>
+          <td>${escapeHtml(provider.endpoint || 'Backend/API endpoint not configured')}</td>
+        </tr>
+      `,
+    )
+    .join('');
+
+  return `
+    <section class="real-source-panel" aria-label="Real Data Source Setup">
+      <div>
+        <p class="eyebrow">Real Data Source Setup</p>
+        <h2>Real Data Source Not Connected</h2>
+        <p class="source-label">Local preview remains the fallback. Real Shopee, TikTok and Lazada product data requires a backend/API connector or a prepared External JSON Database feed.</p>
+      </div>
+      <div class="data-source-table-wrap">
+        <table class="data-source-table">
+          <thead>
+            <tr>
+              <th>Future Source</th>
+              <th>Status</th>
+              <th>Configuration</th>
+            </tr>
+          </thead>
+          <tbody>${providerRows}</tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
 
 function renderDataSourceStatusPanel() {
   if (activeTab !== 'auto') return '';
@@ -668,6 +747,7 @@ function renderProductCommandCenter() {
             <button class="${activeTab === 'import' ? 'active' : ''}" data-tab="import" type="button">Import Links</button>
           </div>
           ${activeTab === 'auto' ? renderDiscoveryFilters() : renderImportLinks()}
+          ${renderRealDataSourceSetupPanel()}
           ${renderDataSourceStatusPanel()}
           ${renderDiscoveryResults()}
         </div>
@@ -824,8 +904,14 @@ function render() {
     return;
   }
 
+  syncSelectedProductsFromStorage();
   root.innerHTML = renderProductCommandCenter();
   attachProductCommandCenterEvents();
 }
+
+window.addEventListener('pageshow', () => {
+  syncSelectedProductsFromStorage();
+  render();
+});
 
 render();

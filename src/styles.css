@@ -613,3 +613,13 @@ h1 {
   background: #edf0ff;
   color: #3b4cff;
 }
+
+.real-source-panel {
+  display: grid;
+  gap: 18px;
+  border: 2px solid rgba(59, 76, 255, 0.2);
+  border-radius: 28px;
+  padding: 22px;
+  background: linear-gradient(135deg, #f7f8ff 0%, #ffffff 100%);
+  box-shadow: 0 18px 48px rgba(59, 76, 255, 0.1);
+}
