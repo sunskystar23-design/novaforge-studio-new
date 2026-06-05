@@ -427,8 +427,13 @@ h1 {
   box-shadow: 0 14px 30px rgba(55, 77, 120, 0.1);
 }
 
-.product-metrics span:last-child {
+.source-url {
+  display: block;
   overflow: hidden;
+  max-width: 100%;
+  color: #647089;
+  font-size: 0.82rem;
+  font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -472,7 +477,5 @@ h1 {
 
 .content-product-card a {
   color: #3b4cff;
-  font-size: 0.9rem;
-  font-weight: 900;
   text-decoration: none;
 }

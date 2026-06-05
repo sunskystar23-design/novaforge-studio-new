@@ -168,8 +168,7 @@ function renderImportedProductCard(product) {
         <span class="platform-chip">${escapeHtml(product.platform)}</span>
         <h3>${escapeHtml(product.title)}</h3>
         <div class="product-metrics">
-          <span>${escapeHtml(product.price)}</span>
-          <span>${escapeHtml(product.productUrl)}</span>
+          <span class="source-url">${escapeHtml(product.productUrl)}</span>
         </div>
       </div>
     </button>
@@ -235,8 +234,9 @@ function renderSelectedProducts() {
         <article class="selected-card">
           <img alt="" src="${escapeHtml(product.image)}" />
           <div>
+            <span class="platform-chip">${escapeHtml(product.platform)}</span>
             <h3>${escapeHtml(product.title)}</h3>
-            <p>${escapeHtml(product.price)}</p>
+            <p class="source-url">${escapeHtml(product.productUrl)}</p>
           </div>
           <button aria-label="Remove ${escapeHtml(product.title)}" data-remove-product-id="${escapeHtml(product.id)}" type="button">
             <span aria-hidden="true">×</span>
@@ -295,8 +295,7 @@ function renderContentGeneratorLanding() {
           <div>
             <span class="platform-chip">${escapeHtml(product.platform)}</span>
             <h3>${escapeHtml(product.title)}</h3>
-            <p>${escapeHtml(product.price)}</p>
-            <a href="${escapeHtml(product.productUrl)}" target="_blank" rel="noreferrer">Open product URL</a>
+            <a class="source-url" href="${escapeHtml(product.productUrl)}" target="_blank" rel="noreferrer">${escapeHtml(product.productUrl)}</a>
           </div>
         </article>
       `,
