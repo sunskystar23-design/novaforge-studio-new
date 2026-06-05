@@ -4,9 +4,10 @@ Product Command Center is frontend-only on GitHub Pages. The browser must not sc
 
 ## Current Status
 
-- Runtime source: **Local Product Dataset Preview** in `src/app.js`.
-- Visible UI label: **Data Source: Local Preview Dataset**.
-- No real marketplace or Kalodata API is connected yet.
+- Default runtime source: **Local Product Dataset Preview** in `src/app.js`.
+- Optional runtime source: **External JSON Database** from a user-provided JSON URL.
+- Visible UI label shows either **Data Source: Local Preview Dataset** or **Data Source: External JSON Database**.
+- No real marketplace, affiliate, or Kalodata API is connected yet.
 
 ## Unified Product Schema
 
@@ -25,6 +26,30 @@ type NormalizedProduct = {
   rawSource: unknown;
 };
 ```
+
+## External JSON Database Contract
+
+The External JSON Database source is a generic product feed. It may be either:
+
+```json
+[
+  {
+    "id": "external-1",
+    "platform": "Shopee",
+    "title": "Example Product",
+    "image": "https://example.com/product.jpg",
+    "price": "฿499",
+    "commission": "12%",
+    "totalSales": "1.2K",
+    "targetTags": ["Trending"],
+    "sourceUrl": "https://example.com/product"
+  }
+]
+```
+
+or an object containing a `products`, `items`, or `data` array. Missing optional values are normalized in the frontend preview, but real backend connectors should provide the full unified schema.
+
+If the external JSON fetch fails or has no product array, Product Command Center shows an error and falls back to the Local Product Dataset Preview.
 
 ## Connector Functions
 

@@ -8,6 +8,13 @@ let activeTab = 'auto';
 let platformFilter = 'All Platforms';
 let targetFilter = 'All';
 let keywordFilter = '';
+let discoveryDataSource = 'local';
+let externalJsonUrl = '';
+let externalProducts = [];
+let externalSourceStatus = 'idle';
+let externalSourceError = '';
+let externalFetchTimer;
+let externalFetchRequestId = 0;
 let selectedProducts = readSelectedProducts();
 
 function platformImage(platform, title = 'Product Preview') {
@@ -113,6 +120,10 @@ function createLocalPreviewConnector(platform, providerTodo) {
 }
 
 function searchProducts(platform, target, keyword) {
+  if (discoveryDataSource === 'external' && externalSourceStatus === 'ready') {
+    return filterProducts(externalProducts, platform, target, keyword);
+  }
+
   const platforms = platform === 'All Platforms' ? ['TikTok', 'Shopee', 'Lazada'] : [platform];
 
   return platforms.flatMap((platformName) => {
@@ -132,10 +143,18 @@ function importProductByUrl(url) {
 }
 
 function filterLocalPreviewProducts(platform, target, keyword) {
+  return filterProducts(discoveryProducts, platform, target, keyword, true);
+}
+
+function platformMatchesFilter(productPlatform, selectedPlatform) {
+  return selectedPlatform === 'All Platforms' || productPlatform === selectedPlatform || (selectedPlatform === 'TikTok' && productPlatform === 'TikTok Shop');
+}
+
+function filterProducts(products, platform, target, keyword, platformAlreadyScoped = false) {
   const normalizedKeyword = String(keyword || '').trim().toLowerCase();
 
-  return discoveryProducts.filter((product) => {
-    const matchesPlatform = product.platform === platform;
+  return products.filter((product) => {
+    const matchesPlatform = platformAlreadyScoped || platformMatchesFilter(product.platform, platform);
     const matchesTarget = target === 'All' || product.targetTags.includes(target);
     const matchesKeyword = !normalizedKeyword || [product.title, product.platform, product.price, product.commission, product.totalSales, product.sourceUrl]
       .join(' ')
@@ -144,6 +163,81 @@ function filterLocalPreviewProducts(platform, target, keyword) {
 
     return matchesPlatform && matchesTarget && matchesKeyword;
   });
+}
+
+function getExternalProductArray(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.products)) return payload.products;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+}
+
+function normalizeExternalProduct(rawProduct, index) {
+  const platform = rawProduct.platform || rawProduct.marketplace || 'External';
+  const title = rawProduct.title || rawProduct.name || rawProduct.productName || `External Product ${index + 1}`;
+  const sourceUrl = rawProduct.sourceUrl || rawProduct.productUrl || rawProduct.url || '';
+  const targetTags = rawProduct.targetTags || rawProduct.targets || rawProduct.tags || [];
+
+  return normalizeProduct({
+    id: rawProduct.id || `external-${index}-${sourceUrl || title}`,
+    platform,
+    title,
+    image: rawProduct.image || rawProduct.thumbnail || rawProduct.imageUrl || platformImage(platform, title),
+    price: rawProduct.price || rawProduct.salePrice || 'Price unavailable',
+    commission: rawProduct.commission || rawProduct.commissionRate || 'N/A',
+    totalSales: rawProduct.totalSales || rawProduct.sales || rawProduct.sold || 'N/A',
+    targetTags: Array.isArray(targetTags) ? targetTags : [targetTags].filter(Boolean),
+    sourceUrl,
+    rawSource: rawProduct,
+    supported: true,
+  });
+}
+
+function scheduleExternalDatabaseFetch() {
+  clearTimeout(externalFetchTimer);
+
+  if (discoveryDataSource !== 'external') return;
+  if (!externalJsonUrl.trim()) {
+    externalProducts = [];
+    externalSourceStatus = 'idle';
+    externalSourceError = '';
+    render();
+    return;
+  }
+
+  externalSourceStatus = 'loading';
+  externalSourceError = '';
+  render();
+  externalFetchTimer = setTimeout(loadExternalDatabase, 500);
+}
+
+async function loadExternalDatabase() {
+  const requestId = ++externalFetchRequestId;
+  const url = externalJsonUrl.trim();
+
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const payload = await response.json();
+    const rawProducts = getExternalProductArray(payload);
+    if (rawProducts.length === 0) throw new Error('JSON must be an array or contain products/items/data array');
+
+    if (requestId !== externalFetchRequestId) return;
+
+    externalProducts = rawProducts.map(normalizeExternalProduct).slice(0, 200);
+    externalSourceStatus = 'ready';
+    externalSourceError = '';
+  } catch (error) {
+    if (requestId !== externalFetchRequestId) return;
+
+    externalProducts = [];
+    externalSourceStatus = 'error';
+    externalSourceError = `External JSON Database failed: ${error.message}. Falling back to Local Preview Dataset.`;
+  }
+
+  render();
 }
 
 function detectPlatform(url) {
@@ -221,12 +315,14 @@ function titleFromPath(urlObject, platform) {
 
 function normalizeProduct(rawProduct) {
   const sourceUrl = rawProduct.sourceUrl || rawProduct.productUrl || '';
+  const platform = rawProduct.platform || 'External';
+  const title = rawProduct.title || 'Untitled Product';
 
   return {
     id: rawProduct.id,
-    platform: rawProduct.platform,
-    title: rawProduct.title,
-    image: rawProduct.image || platformImage(rawProduct.platform, rawProduct.title),
+    platform,
+    title,
+    image: rawProduct.image || platformImage(platform, title),
     price: rawProduct.price || 'Price unavailable',
     commission: rawProduct.commission || 'N/A',
     totalSales: rawProduct.totalSales || 'N/A',
@@ -324,6 +420,17 @@ function renderDiscoveryFilters() {
   return `
     <section class="filter-bar discovery-filters" aria-label="Auto Discovery filters">
       <label>
+        <span>Data Source</span>
+        <select id="data-source-filter">
+          <option value="local" ${discoveryDataSource === 'local' ? 'selected' : ''}>Local Preview Dataset</option>
+          <option value="external" ${discoveryDataSource === 'external' ? 'selected' : ''}>External JSON Database</option>
+        </select>
+      </label>
+      <label>
+        <span>External JSON Database URL</span>
+        <input id="external-json-url" placeholder="https://example.com/products.json" type="url" value="${escapeHtml(externalJsonUrl)}" />
+      </label>
+      <label>
         <span>Platform</span>
         <select id="platform-filter">${renderOptions(platformOptions, platformFilter)}</select>
       </label>
@@ -410,6 +517,15 @@ function renderImportLinks() {
 function renderDataSourceStatusPanel() {
   if (activeTab !== 'auto') return '';
 
+  const activeSourceLabel = discoveryDataSource === 'external' && externalSourceStatus === 'ready'
+    ? `External JSON Database (${externalProducts.length} products loaded)`
+    : 'Local Preview Dataset';
+  const sourceMessage = discoveryDataSource === 'external'
+    ? 'External JSON Database fetches product records from the provided JSON URL only. Marketplace APIs are still not connected and the frontend does not scrape marketplace pages.'
+    : 'TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.';
+  const errorMessage = externalSourceError ? `<p class="source-error">${escapeHtml(externalSourceError)}</p>` : '';
+  const loadingMessage = externalSourceStatus === 'loading' ? '<p class="source-loading">Loading External JSON Database…</p>' : '';
+
   const rows = [
     ['TikTok', 'src/app.js local dataset', 'Not connected', 'TikTok Shop / Kalodata / backend API'],
     ['Shopee', 'src/app.js local dataset', 'Not connected', 'Shopee Affiliate/Product API or backend API'],
@@ -421,8 +537,10 @@ function renderDataSourceStatusPanel() {
       <div class="data-source-header">
         <div>
           <p class="eyebrow">Data Source Status</p>
-          <h2>Local Preview Dataset Only</h2>
-          <p class="source-label">TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.</p>
+          <h2>${escapeHtml(activeSourceLabel)}</h2>
+          <p class="source-label">${escapeHtml(sourceMessage)}</p>
+          ${loadingMessage}
+          ${errorMessage}
         </div>
         <span class="local-preview-badge">LOCAL PREVIEW DATA — NOT LIVE PLATFORM DATA</span>
       </div>
@@ -489,7 +607,7 @@ function renderDiscoveryResults() {
         <div>
           <p class="eyebrow">${activeTab === 'auto' ? 'Local Product Dataset Preview' : 'Manual Product Import'}</p>
           <h2>${heading}</h2>
-          ${activeTab === 'auto' ? '<p class="source-label">Data Source: Local Preview Dataset</p>' : ''}
+          ${activeTab === 'auto' ? `<p class="source-label">Data Source: ${discoveryDataSource === 'external' && externalSourceStatus === 'ready' ? 'External JSON Database' : 'Local Preview Dataset'}</p>` : ''}
         </div>
         <span>${products.length} products</span>
       </div>
@@ -607,6 +725,28 @@ function attachProductCommandCenterEvents() {
     });
   });
 
+  document.querySelector('#data-source-filter')?.addEventListener('change', (event) => {
+    discoveryDataSource = event.target.value;
+    externalSourceError = '';
+    if (discoveryDataSource === 'external') {
+      scheduleExternalDatabaseFetch();
+    } else {
+      externalSourceStatus = 'idle';
+      render();
+    }
+  });
+
+  document.querySelector('#external-json-url')?.addEventListener('input', (event) => {
+    externalJsonUrl = event.target.value;
+    if (discoveryDataSource !== 'external') {
+      discoveryDataSource = 'external';
+    }
+    scheduleExternalDatabaseFetch();
+    const externalInput = document.querySelector('#external-json-url');
+    externalInput?.focus();
+    externalInput?.setSelectionRange(event.target.value.length, event.target.value.length);
+  });
+
   document.querySelector('#platform-filter')?.addEventListener('change', (event) => {
     platformFilter = event.target.value;
     render();
@@ -654,7 +794,7 @@ function attachProductCommandCenterEvents() {
 
   document.querySelectorAll('[data-discovery-product-id]').forEach((card) => {
     card.addEventListener('click', () => {
-      const product = discoveryProducts.find((item) => item.id === card.dataset.discoveryProductId);
+      const product = getDiscoveryResults().find((item) => item.id === card.dataset.discoveryProductId);
       if (product) toggleProduct(product);
     });
   });

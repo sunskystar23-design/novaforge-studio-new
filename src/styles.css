@@ -594,3 +594,22 @@ h1 {
     width: 100%;
   }
 }
+
+.source-error,
+.source-loading {
+  margin: 10px 0 0;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.source-error {
+  background: #ffeef0;
+  color: #c81e3a;
+}
+
+.source-loading {
+  background: #edf0ff;
+  color: #3b4cff;
+}
