@@ -623,3 +623,8 @@ h1 {
   background: linear-gradient(135deg, #f7f8ff 0%, #ffffff 100%);
   box-shadow: 0 18px 48px rgba(59, 76, 255, 0.1);
 }
+
+.local-preview-badge.connected {
+  background: #0f766e;
+  color: #ffffff;
+}

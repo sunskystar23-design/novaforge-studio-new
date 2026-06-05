@@ -680,8 +680,8 @@ function renderRealDataSourceSetupPanel() {
     <section class="real-source-panel" aria-label="Real Data Source Setup">
       <div>
         <p class="eyebrow">Real Data Source Setup</p>
-        <h2>Real Data Source Not Connected</h2>
-        <p class="source-label">Local preview remains the fallback. Real Shopee, TikTok and Lazada product data requires a backend/API connector or a prepared External JSON Database feed.</p>
+        <h2>${isSupabasePrimaryActive() ? 'Supabase Product Warehouse Connected' : 'Real Data Source Not Connected'}</h2>
+        <p class="source-label">${isSupabasePrimaryActive() ? 'Supabase is the active Product Command Center database source. Marketplace provider APIs still require backend sync jobs.' : 'Local preview remains the fallback. Real Shopee, TikTok and Lazada product data requires a backend/API connector or a prepared External JSON Database feed.'}</p>
       </div>
       <div class="data-source-table-wrap">
         <table class="data-source-table">
@@ -699,19 +699,32 @@ function renderRealDataSourceSetupPanel() {
   `;
 }
 
+function isSupabasePrimaryActive() {
+  return discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready';
+}
+
+function getDiscoverySourceLabel() {
+  if (isSupabasePrimaryActive()) return 'Supabase Product Warehouse';
+  if (discoveryDataSource === 'external' && externalSourceStatus === 'ready') return 'External JSON Database';
+  return 'Local Preview Dataset';
+}
+
 function renderDataSourceStatusPanel() {
   if (activeTab !== 'auto') return '';
 
-  const activeSourceLabel = discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready'
+  const activeSourceName = getDiscoverySourceLabel();
+  const activeSourceLabel = isSupabasePrimaryActive()
     ? `Supabase Product Warehouse (${supabaseProducts.length} products loaded)`
     : discoveryDataSource === 'external' && externalSourceStatus === 'ready'
       ? `External JSON Database (${externalProducts.length} products loaded)`
       : 'Local Preview Dataset';
-  const sourceMessage = discoveryDataSource === 'supabase'
-    ? 'Supabase Product Warehouse reads normalized rows from the products table when USE_SUPABASE is true and public anon config is provided. Local Preview Dataset is used as fallback.'
-    : discoveryDataSource === 'external'
-      ? 'External JSON Database fetches product records from the provided JSON URL only. Marketplace APIs are still not connected and the frontend does not scrape marketplace pages.'
-      : 'TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.';
+  const sourceMessage = isSupabasePrimaryActive()
+    ? 'Supabase Product Warehouse is connected and is the primary discovery source. Local Preview Dataset is available only as fallback if Supabase fails.'
+    : discoveryDataSource === 'supabase'
+      ? 'Supabase Product Warehouse is selected but not ready. Local Preview Dataset is used as fallback until Supabase loads successfully.'
+      : discoveryDataSource === 'external'
+        ? 'External JSON Database fetches product records from the provided JSON URL only. Marketplace APIs are still not connected and the frontend does not scrape marketplace pages.'
+        : 'TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.';
   const errorMessage = [supabaseSourceError, externalSourceError]
     .filter(Boolean)
     .map((message) => `<p class="source-error">${escapeHtml(message)}</p>`)
@@ -725,9 +738,11 @@ function renderDataSourceStatusPanel() {
     .join('');
 
   const rows = [
-    ['TikTok', 'src/app.js local dataset', 'Not connected', 'TikTok Shop / Kalodata / backend API'],
-    ['Shopee', 'src/app.js local dataset', 'Not connected', 'Shopee Affiliate/Product API or backend API'],
-    ['Lazada', 'src/app.js local dataset', 'Not connected', 'Lazada Affiliate/Product API or backend API'],
+    ['Supabase Product Warehouse', activeSourceName, isSupabasePrimaryActive() ? 'Connected' : 'Not connected / fallback active', 'Supabase products table via anon key'],
+    ['TikTok Shop data provider', 'Backend sync required', 'Not connected', 'TikTok Shop / Kalodata / backend API'],
+    ['Shopee product/affiliate API', 'Backend sync required', 'Not connected', 'Shopee Affiliate/Product API or backend API'],
+    ['Lazada product/affiliate API', 'Backend sync required', 'Not connected', 'Lazada Affiliate/Product API or backend API'],
+    ['Kalodata API', 'Backend sync required', 'Not connected', 'Kalodata / backend API'],
   ];
 
   return `
@@ -740,21 +755,29 @@ function renderDataSourceStatusPanel() {
           ${loadingMessage}
           ${errorMessage}
         </div>
-        <span class="local-preview-badge">LOCAL PREVIEW DATA — NOT LIVE PLATFORM DATA</span>
+        <span class="local-preview-badge ${isSupabasePrimaryActive() ? 'connected' : ''}">${isSupabasePrimaryActive() ? 'SUPABASE PRODUCT WAREHOUSE ACTIVE' : 'LOCAL PREVIEW DATA — NOT LIVE PLATFORM DATA'}</span>
       </div>
 
       <div class="platform-status-grid" aria-label="Platform connector summary">
         <article>
-          <h3>TikTok</h3>
-          <p>Local Preview Dataset / Real API not connected</p>
+          <h3>Supabase Product Warehouse</h3>
+          <p>${isSupabasePrimaryActive() ? 'Connected' : 'Not connected / fallback active'}</p>
         </article>
         <article>
-          <h3>Shopee</h3>
-          <p>Local Preview Dataset / Real API not connected</p>
+          <h3>TikTok Shop data provider</h3>
+          <p>Not connected</p>
         </article>
         <article>
-          <h3>Lazada</h3>
-          <p>Local Preview Dataset / Real API not connected</p>
+          <h3>Shopee product/affiliate API</h3>
+          <p>Not connected</p>
+        </article>
+        <article>
+          <h3>Lazada product/affiliate API</h3>
+          <p>Not connected</p>
+        </article>
+        <article>
+          <h3>Kalodata API</h3>
+          <p>Not connected</p>
         </article>
       </div>
 
@@ -762,9 +785,9 @@ function renderDataSourceStatusPanel() {
         <table class="data-source-table">
           <thead>
             <tr>
-              <th>Platform</th>
-              <th>Current Source</th>
-              <th>Real Connector Status</th>
+              <th>Source</th>
+              <th>Current Role</th>
+              <th>Status</th>
               <th>Required Integration</th>
             </tr>
           </thead>
@@ -791,6 +814,7 @@ function renderDataSourceStatusPanel() {
 function renderDiscoveryResults() {
   const products = activeTab === 'auto' ? getDiscoveryResults() : getImportedProducts();
   const heading = activeTab === 'auto' ? 'Discovery Results' : 'Imported Products';
+  const discoverySourceLabel = getDiscoverySourceLabel();
   const emptyMessage = activeTab === 'auto'
     ? 'No products match the current local dataset filters.'
     : 'Paste product URLs above to extract products for selection.';
@@ -803,9 +827,9 @@ function renderDiscoveryResults() {
     <section class="results-section">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">${activeTab === 'auto' ? 'Local Product Dataset Preview' : 'Manual Product Import'}</p>
+          <p class="eyebrow">${activeTab === 'auto' ? discoverySourceLabel : 'Manual Product Import'}</p>
           <h2>${heading}</h2>
-          ${activeTab === 'auto' ? `<p class="source-label">Data Source: ${discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready' ? 'Supabase Product Warehouse' : discoveryDataSource === 'external' && externalSourceStatus === 'ready' ? 'External JSON Database' : 'Local Preview Dataset'}</p>` : ''}
+          ${activeTab === 'auto' ? `<p class="source-label">Data Source: ${discoverySourceLabel}${isSupabasePrimaryActive() ? ' (Primary)' : discoverySourceLabel === 'Local Preview Dataset' ? ' (Fallback / Preview)' : ''}</p>` : ''}
         </div>
         <span>${products.length} products</span>
       </div>
