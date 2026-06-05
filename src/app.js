@@ -35,7 +35,7 @@ function platformImage(platform, title = 'Product Preview') {
 }
 
 function createProduct(id, platform, title, price, commission, totalSales, targetTags, sourceUrl) {
-  return {
+  return normalizeProduct({
     id,
     platform,
     title,
@@ -45,9 +45,12 @@ function createProduct(id, platform, title, price, commission, totalSales, targe
     totalSales,
     targetTags,
     sourceUrl,
-    productUrl: sourceUrl,
+    rawSource: {
+      provider: 'Local Product Dataset Preview',
+      targetTags,
+    },
     supported: true,
-  };
+  });
 }
 
 const discoveryProducts = [
@@ -82,6 +85,66 @@ const discoveryProducts = [
   createProduct('lz-009', 'Lazada', 'Stainless Lunch Box Set', '฿359', '9%', '16.5K', ['Best Seller', 'Trending'], 'https://www.lazada.co.th/products/lz-009.html'),
   createProduct('lz-010', 'Lazada', 'Home Security WiFi Camera', '฿699', '17%', '25.1K', ['High Commission', 'Best Seller'], 'https://www.lazada.co.th/products/lz-010.html'),
 ];
+
+const productDataSourceConnectors = {
+  TikTok: createLocalPreviewConnector('TikTok', 'TikTok Shop data provider'),
+  Shopee: createLocalPreviewConnector('Shopee', 'Shopee affiliate/product API'),
+  Lazada: createLocalPreviewConnector('Lazada', 'Lazada affiliate/product API'),
+};
+
+// TODO: Replace the local preview connector with backend API calls when real providers are available.
+// TODO: Kalodata API integration should live behind server/API endpoints, never direct browser scraping.
+// TODO: TikTok Shop data provider credentials and requests should be handled by a backend connector.
+// TODO: Shopee affiliate/product API credentials and requests should be handled by a backend connector.
+// TODO: Lazada affiliate/product API credentials and requests should be handled by a backend connector.
+function createLocalPreviewConnector(platform, providerTodo) {
+  return {
+    platform,
+    providerTodo,
+    sourceLabel: 'Local Product Dataset Preview',
+    searchProducts({ target, keyword }) {
+      return filterLocalPreviewProducts(platform, target, keyword);
+    },
+    importProductByUrl(url) {
+      return extractProductFromUrl(url, importLinks.indexOf(url));
+    },
+    normalizeProduct,
+  };
+}
+
+function searchProducts(platform, target, keyword) {
+  const platforms = platform === 'All Platforms' ? ['TikTok', 'Shopee', 'Lazada'] : [platform];
+
+  return platforms.flatMap((platformName) => {
+    const connector = productDataSourceConnectors[platformName];
+    if (!connector) return [];
+    return connector.searchProducts({ target, keyword });
+  });
+}
+
+function importProductByUrl(url) {
+  const platform = detectPlatform(url);
+  const connectorPlatform = platform === 'TikTok Shop' ? 'TikTok' : platform;
+  const connector = productDataSourceConnectors[connectorPlatform];
+
+  if (!connector) return extractProductFromUrl(url, importLinks.indexOf(url));
+  return connector.importProductByUrl(url);
+}
+
+function filterLocalPreviewProducts(platform, target, keyword) {
+  const normalizedKeyword = String(keyword || '').trim().toLowerCase();
+
+  return discoveryProducts.filter((product) => {
+    const matchesPlatform = product.platform === platform;
+    const matchesTarget = target === 'All' || product.targetTags.includes(target);
+    const matchesKeyword = !normalizedKeyword || [product.title, product.platform, product.price, product.commission, product.totalSales, product.sourceUrl]
+      .join(' ')
+      .toLowerCase()
+      .includes(normalizedKeyword);
+
+    return matchesPlatform && matchesTarget && matchesKeyword;
+  });
+}
 
 function detectPlatform(url) {
   const normalizedUrl = url.toLowerCase();
@@ -156,14 +219,22 @@ function titleFromPath(urlObject, platform) {
   return titleCandidate || `${platform} Product`;
 }
 
-function normalizeProduct(product) {
-  const sourceUrl = product.sourceUrl || product.productUrl || '';
+function normalizeProduct(rawProduct) {
+  const sourceUrl = rawProduct.sourceUrl || rawProduct.productUrl || '';
 
   return {
-    ...product,
+    id: rawProduct.id,
+    platform: rawProduct.platform,
+    title: rawProduct.title,
+    image: rawProduct.image || platformImage(rawProduct.platform, rawProduct.title),
+    price: rawProduct.price || 'Price unavailable',
+    commission: rawProduct.commission || 'N/A',
+    totalSales: rawProduct.totalSales || 'N/A',
     sourceUrl,
+    rawSource: rawProduct.rawSource || rawProduct,
+    targetTags: rawProduct.targetTags || [],
     productUrl: sourceUrl,
-    supported: product.supported !== false,
+    supported: rawProduct.supported !== false,
   };
 }
 
@@ -175,7 +246,7 @@ function extractProductFromUrl(url, index) {
 
   const platform = detectPlatform(trimmedUrl);
   if (platform === 'Unsupported') {
-    return {
+    return normalizeProduct({
       id: `unsupported-${index}-${trimmedUrl}`,
       title: 'Unsupported product URL',
       image: platformImage(platform),
@@ -185,16 +256,16 @@ function extractProductFromUrl(url, index) {
       platform,
       targetTags: [],
       sourceUrl: trimmedUrl,
-      productUrl: trimmedUrl,
+      rawSource: { sourceUrl: trimmedUrl, supported: false },
       supported: false,
-    };
+    });
   }
 
   const title = getQueryValue(urlObject, ['title', 'name', 'product_name', 'item_title']) || titleFromPath(urlObject, platform);
   const image = getQueryValue(urlObject, ['image', 'img', 'thumbnail', 'thumb', 'imageUrl', 'pic']) || platformImage(platform, title);
   const price = getQueryValue(urlObject, ['price', 'sale_price', 'amount', 'minPrice', 'current_price']) || 'Price unavailable';
 
-  return {
+  return normalizeProduct({
     id: `import-${platform}-${urlObject.hostname}-${urlObject.pathname}-${urlObject.search}`,
     title,
     image,
@@ -204,28 +275,20 @@ function extractProductFromUrl(url, index) {
     platform,
     targetTags: ['Imported'],
     sourceUrl: trimmedUrl,
-    productUrl: trimmedUrl,
+    rawSource: {
+      sourceUrl: trimmedUrl,
+      provider: 'URL Import Preview',
+    },
     supported: true,
-  };
+  });
 }
 
 function getImportedProducts() {
-  return importLinks.map(extractProductFromUrl).filter(Boolean).slice(0, maxSelectedProducts);
+  return importLinks.map(importProductByUrl).filter(Boolean).slice(0, maxSelectedProducts);
 }
 
 function getDiscoveryResults() {
-  const keyword = keywordFilter.trim().toLowerCase();
-
-  return discoveryProducts.filter((product) => {
-    const matchesPlatform = platformFilter === 'All Platforms' || product.platform === platformFilter;
-    const matchesTarget = targetFilter === 'All' || product.targetTags.includes(targetFilter);
-    const matchesKeyword = !keyword || [product.title, product.platform, product.price, product.commission, product.totalSales, product.sourceUrl]
-      .join(' ')
-      .toLowerCase()
-      .includes(keyword);
-
-    return matchesPlatform && matchesTarget && matchesKeyword;
-  });
+  return searchProducts(platformFilter, targetFilter, keywordFilter);
 }
 
 function isSelected(product) {
@@ -358,8 +421,9 @@ function renderDiscoveryResults() {
     <section class="results-section">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">${activeTab === 'auto' ? 'Discovery Database Preview' : 'Manual Product Import'}</p>
+          <p class="eyebrow">${activeTab === 'auto' ? 'Local Product Dataset Preview' : 'Manual Product Import'}</p>
           <h2>${heading}</h2>
+          ${activeTab === 'auto' ? '<p class="source-label">Data Source: Local Preview Dataset</p>' : ''}
         </div>
         <span>${products.length} products</span>
       </div>

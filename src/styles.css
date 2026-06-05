@@ -481,3 +481,10 @@ h1 {
   color: #3b4cff;
   text-decoration: none;
 }
+
+.source-label {
+  margin: 6px 0 0;
+  color: #7b869a;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
