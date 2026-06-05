@@ -669,7 +669,8 @@ function escapeSvg(value) {
 }
 
 function productSelectionKey(product) {
-  return product.id || product.sourceUrl || product.productUrl || product.title;
+  const selectionKey = product?.id ?? product?.sourceUrl ?? product?.productUrl ?? product?.title ?? '';
+  return String(selectionKey);
 }
 
 function dedupeProducts(products) {
@@ -742,8 +743,10 @@ function normalizeProduct(rawProduct) {
   const platform = rawProduct.platform || 'External';
   const title = rawProduct.title || 'Untitled Product';
 
+  const id = rawProduct.id ?? (sourceUrl || `${platform}-${title}`);
+
   return {
-    id: rawProduct.id || sourceUrl || `${platform}-${title}`,
+    id: String(id),
     platform,
     title,
     image: rawProduct.image || platformImage(platform, title),
@@ -835,7 +838,7 @@ function toggleProduct(product) {
 }
 
 function removeSelectedProduct(productId) {
-  selectedProducts = selectedProducts.filter((product) => product.id !== productId);
+  selectedProducts = selectedProducts.filter((product) => productSelectionKey(product) !== String(productId));
   saveSelectedProducts();
   render();
 }
@@ -878,16 +881,19 @@ function renderDiscoveryFilters() {
 }
 
 function renderDiscoveryProductCard(product) {
+  const normalizedProduct = normalizeProduct(product);
+  const productId = productSelectionKey(normalizedProduct);
+
   return `
-    <button class="product-card ${isSelected(product) ? 'selected' : ''}" data-discovery-product-id="${escapeHtml(product.id)}" type="button">
-      <img alt="" src="${escapeHtml(product.image)}" />
+    <button class="product-card ${isSelected(normalizedProduct) ? 'selected' : ''}" data-discovery-product="${escapeHtml(productId)}" data-discovery-product-id="${escapeHtml(productId)}" type="button">
+      <img alt="" src="${escapeHtml(normalizedProduct.image)}" />
       <div class="product-info">
-        <span class="platform-chip">${escapeHtml(product.platform)}</span>
-        <h3>${escapeHtml(product.title)}</h3>
+        <span class="platform-chip">${escapeHtml(normalizedProduct.platform)}</span>
+        <h3>${escapeHtml(normalizedProduct.title)}</h3>
         <div class="product-metrics">
-          <span>${escapeHtml(product.price)}</span>
-          <span>${escapeHtml(product.commission)} commission</span>
-          <span>${escapeHtml(product.totalSales)} sales</span>
+          <span>${escapeHtml(normalizedProduct.price)}</span>
+          <span>${escapeHtml(normalizedProduct.commission)} commission</span>
+          <span>${escapeHtml(normalizedProduct.totalSales)} sales</span>
         </div>
       </div>
     </button>
@@ -895,15 +901,18 @@ function renderDiscoveryProductCard(product) {
 }
 
 function renderImportedProductCard(product) {
+  const normalizedProduct = normalizeProduct(product);
+  const productId = productSelectionKey(normalizedProduct);
+
   return `
-    <button class="product-card ${isSelected(product) ? 'selected' : ''} ${!product.supported ? 'disabled' : ''}" data-import-product-id="${escapeHtml(product.id)}" type="button">
-      <img alt="" src="${escapeHtml(product.image)}" />
+    <button class="product-card ${isSelected(normalizedProduct) ? 'selected' : ''} ${!normalizedProduct.supported ? 'disabled' : ''}" data-import-product-id="${escapeHtml(productId)}" type="button">
+      <img alt="" src="${escapeHtml(normalizedProduct.image)}" />
       <div class="product-info">
-        <span class="platform-chip">${escapeHtml(product.platform)}</span>
-        <h3>${escapeHtml(product.title)}</h3>
+        <span class="platform-chip">${escapeHtml(normalizedProduct.platform)}</span>
+        <h3>${escapeHtml(normalizedProduct.title)}</h3>
         <div class="product-metrics">
-          <span>${escapeHtml(product.price)}</span>
-          <span class="source-url">${escapeHtml(product.sourceUrl)}</span>
+          <span>${escapeHtml(normalizedProduct.price)}</span>
+          <span class="source-url">${escapeHtml(normalizedProduct.sourceUrl)}</span>
         </div>
       </div>
     </button>
@@ -1120,7 +1129,7 @@ function renderSelectedProducts() {
             <h3>${escapeHtml(product.title)}</h3>
             <p>${escapeHtml(product.price)}</p>
           </div>
-          <button aria-label="Remove ${escapeHtml(product.title)}" data-remove-product-id="${escapeHtml(product.id)}" type="button">
+          <button aria-label="Remove ${escapeHtml(product.title)}" data-remove-product-id="${escapeHtml(productSelectionKey(product))}" type="button">
             <span aria-hidden="true">×</span>
           </button>
         </article>
@@ -1306,14 +1315,15 @@ function attachProductCommandCenterEvents() {
 
   document.querySelectorAll('[data-discovery-product-id]').forEach((card) => {
     card.addEventListener('click', () => {
-      const product = getDiscoveryResults().find((item) => item.id === card.dataset.discoveryProductId);
+      const productId = card.dataset.discoveryProductId || card.dataset.discoveryProduct;
+      const product = getDiscoveryResults().find((item) => productSelectionKey(item) === String(productId));
       if (product) toggleProduct(product);
     });
   });
 
   document.querySelectorAll('[data-import-product-id]').forEach((card) => {
     card.addEventListener('click', () => {
-      const product = getImportedProducts().find((item) => item.id === card.dataset.importProductId);
+      const product = getImportedProducts().find((item) => productSelectionKey(item) === String(card.dataset.importProductId));
       if (product) toggleProduct(product);
     });
   });
