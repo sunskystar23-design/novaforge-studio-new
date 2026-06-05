@@ -2,8 +2,6 @@ const maxSelectedProducts = 10;
 const productStorageKey = 'selectedProducts';
 const platformOptions = ['All Platforms', 'TikTok', 'Shopee', 'Lazada'];
 const targetOptions = ['All', 'High Commission', 'High Profit', 'Best Seller', 'Trending', 'New Arrival'];
-const csvImportColumns = ['platform', 'target', 'title', 'price', 'commission', 'sales', 'image_url', 'product_url'];
-const supabaseImportChunkSize = 100;
 const supabaseFetchPageSize = 1000;
 const importLinks = Array.from({ length: maxSelectedProducts }, () => '');
 const appScriptUrl = (typeof document !== 'undefined' && document.currentScript?.src) || 'src/app.js';
@@ -13,19 +11,6 @@ const defaultDataSourceConfig = {
   USE_SUPABASE: false,
 };
 let runtimeDataSourceConfig = { ...defaultDataSourceConfig };
-const realDataSourceConfig = {
-  status: 'not-connected',
-  notice: 'Real Data Source Not Connected',
-  providers: {
-    kalodataApi: { label: 'Kalodata API', status: 'Not connected', endpoint: '' },
-    tiktokShopProvider: { label: 'TikTok Shop data provider', status: 'Not connected', endpoint: '' },
-    shopeeProductAffiliateApi: { label: 'Shopee product/affiliate API', status: 'Not connected', endpoint: '' },
-    lazadaProductAffiliateApi: { label: 'Lazada product/affiliate API', status: 'Not connected', endpoint: '' },
-    externalJsonDatabase: { label: 'External JSON database', status: 'Optional user-provided JSON feed', endpoint: '' },
-    supabaseProductWarehouse: { label: 'Supabase Product Warehouse', status: 'Configured only when USE_SUPABASE is true', endpoint: '' },
-  },
-};
-
 let activeTab = 'auto';
 let platformFilter = 'All Platforms';
 let targetFilter = 'All';
@@ -40,7 +25,6 @@ let externalFetchRequestId = 0;
 let supabaseProducts = [];
 let supabaseSourceStatus = 'idle';
 let supabaseSourceError = '';
-let productImportSummary = createProductImportSummary();
 let selectedProducts = readSelectedProducts();
 
 function platformImage(platform, title = 'Product Preview') {
@@ -367,140 +351,6 @@ async function loadExternalDatabase() {
 }
 
 
-function createProductImportSummary(overrides = {}) {
-  return {
-    status: 'idle',
-    fileName: '',
-    totalRows: 0,
-    validRows: 0,
-    invalidRows: 0,
-    inserted: 0,
-    skipped: 0,
-    failed: 0,
-    message: '',
-    invalidExamples: [],
-    ...overrides,
-  };
-}
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let insideQuotes = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    const nextCharacter = text[index + 1];
-
-    if (character === '"') {
-      if (insideQuotes && nextCharacter === '"') {
-        field += '"';
-        index += 1;
-      } else {
-        insideQuotes = !insideQuotes;
-      }
-    } else if (character === ',' && !insideQuotes) {
-      row.push(field);
-      field = '';
-    } else if ((character === '\n' || character === '\r') && !insideQuotes) {
-      if (character === '\r' && nextCharacter === '\n') index += 1;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-    } else {
-      field += character;
-    }
-  }
-
-  row.push(field);
-  rows.push(row);
-
-  return rows.filter((csvRow) => csvRow.some((value) => value.trim() !== ''));
-}
-
-function canonicalCsvPlatform(value) {
-  const normalizedPlatform = String(value || '').trim().toLowerCase();
-  if (normalizedPlatform.includes('tiktok')) return 'TikTok';
-  if (normalizedPlatform.includes('shopee')) return 'Shopee';
-  if (normalizedPlatform.includes('lazada')) return 'Lazada';
-  return '';
-}
-
-function splitTargetTags(value) {
-  return String(value || '')
-    .split(/[;|]/)
-    .map((target) => target.trim())
-    .filter(Boolean);
-}
-
-function hasValidUrl(value) {
-  return Boolean(getUrlObject(String(value || '').trim()));
-}
-
-function validateCsvProducts(csvText) {
-  const rows = parseCsv(csvText);
-  if (rows.length === 0) throw new Error('CSV file is empty');
-
-  const headers = rows[0].map((header) => header.trim().toLowerCase());
-  const missingColumns = csvImportColumns.filter((column) => !headers.includes(column));
-  if (missingColumns.length > 0) {
-    throw new Error(`Missing required CSV columns: ${missingColumns.join(', ')}`);
-  }
-
-  const columnIndexes = Object.fromEntries(csvImportColumns.map((column) => [column, headers.indexOf(column)]));
-  const validProducts = [];
-  const invalidExamples = [];
-  const dataRows = rows.slice(1).filter((row) => row.some((value) => value.trim() !== ''));
-
-  dataRows.forEach((row, rowIndex) => {
-    const rowNumber = rowIndex + 2;
-    const getValue = (column) => String(row[columnIndexes[column]] || '').trim();
-    const platform = canonicalCsvPlatform(getValue('platform'));
-    const targetTags = splitTargetTags(getValue('target'));
-    const title = getValue('title');
-    const price = getValue('price');
-    const commission = getValue('commission');
-    const totalSales = getValue('sales');
-    const imageUrl = getValue('image_url');
-    const productUrl = getValue('product_url');
-    const errors = [];
-
-    if (!platform) errors.push('platform must be TikTok, Shopee, or Lazada');
-    if (targetTags.length === 0) errors.push('target is required');
-    if (!title) errors.push('title is required');
-    if (!price) errors.push('price is required');
-    if (!commission) errors.push('commission is required');
-    if (!totalSales) errors.push('sales is required');
-    if (!imageUrl || !hasValidUrl(imageUrl)) errors.push('image_url must be a valid URL');
-    if (!productUrl || !hasValidUrl(productUrl)) errors.push('product_url must be a valid URL');
-
-    if (errors.length > 0) {
-      invalidExamples.push({ rowNumber, errors });
-      return;
-    }
-
-    validProducts.push({
-      platform,
-      title,
-      image_url: imageUrl,
-      price,
-      commission,
-      total_sales: totalSales,
-      target_tags: targetTags,
-      source_url: productUrl,
-      data_source: 'csv_upload',
-      fetched_at: new Date().toISOString(),
-    });
-  });
-
-  return {
-    totalRows: dataRows.length,
-    validProducts,
-    invalidExamples,
-  };
-}
 
 function supabaseRequestHeaders(extraHeaders = {}) {
   return {
@@ -509,135 +359,6 @@ function supabaseRequestHeaders(extraHeaders = {}) {
     Accept: 'application/json',
     ...extraHeaders,
   };
-}
-
-function supabaseProductsEndpoint(query = '') {
-  const baseUrl = runtimeDataSourceConfig.SUPABASE_URL.replace(/\/$/, '');
-  return `${baseUrl}/rest/v1/products${query}`;
-}
-
-function encodePostgrestInValues(values) {
-  return encodeURIComponent(`in.(${values.map((value) => `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(',')})`);
-}
-
-async function fetchExistingSupabaseProductUrls(productUrls) {
-  const existingUrls = new Set();
-
-  for (let index = 0; index < productUrls.length; index += supabaseImportChunkSize) {
-    const batch = productUrls.slice(index, index + supabaseImportChunkSize);
-    if (batch.length === 0) continue;
-
-    const response = await fetch(supabaseProductsEndpoint(`?select=source_url&source_url=${encodePostgrestInValues(batch)}`), {
-      headers: supabaseRequestHeaders(),
-    });
-
-    if (!response.ok) throw new Error(`Duplicate check failed with Supabase HTTP ${response.status}`);
-
-    const rows = await response.json();
-    if (!Array.isArray(rows)) throw new Error('Duplicate check response was not an array');
-    rows.forEach((row) => {
-      if (row.source_url) existingUrls.add(row.source_url);
-    });
-  }
-
-  return existingUrls;
-}
-
-async function insertSupabaseProducts(products) {
-  let inserted = 0;
-  let failed = 0;
-
-  for (let index = 0; index < products.length; index += supabaseImportChunkSize) {
-    const batch = products.slice(index, index + supabaseImportChunkSize);
-    const response = await fetch(supabaseProductsEndpoint(), {
-      method: 'POST',
-      headers: supabaseRequestHeaders({
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      }),
-      body: JSON.stringify(batch),
-    });
-
-    if (response.ok) {
-      inserted += batch.length;
-    } else {
-      failed += batch.length;
-    }
-  }
-
-  return { inserted, failed };
-}
-
-async function importCsvProductsToSupabase(file) {
-  productImportSummary = createProductImportSummary({
-    status: 'validating',
-    fileName: file.name,
-    message: 'Validating CSV rows before Supabase import…',
-  });
-  render();
-
-  try {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase Product Warehouse is not configured. Set USE_SUPABASE to true and provide the public anon key before importing products.');
-    }
-
-    const csvText = await file.text();
-    const validation = validateCsvProducts(csvText);
-    const skippedDuplicateUrls = new Set();
-    const uniqueValidProducts = validation.validProducts.filter((product) => {
-      if (skippedDuplicateUrls.has(product.source_url)) return false;
-      skippedDuplicateUrls.add(product.source_url);
-      return true;
-    });
-    const duplicateRowsInFile = validation.validProducts.length - uniqueValidProducts.length;
-
-    productImportSummary = createProductImportSummary({
-      status: 'importing',
-      fileName: file.name,
-      totalRows: validation.totalRows,
-      validRows: validation.validProducts.length,
-      invalidRows: validation.invalidExamples.length,
-      skipped: duplicateRowsInFile,
-      invalidExamples: validation.invalidExamples.slice(0, 5),
-      message: 'Checking Supabase for duplicate product_url values…',
-    });
-    render();
-
-    const existingUrls = await fetchExistingSupabaseProductUrls(uniqueValidProducts.map((product) => product.source_url));
-    const productsToInsert = uniqueValidProducts.filter((product) => !existingUrls.has(product.source_url));
-    const skipped = duplicateRowsInFile + existingUrls.size;
-
-    productImportSummary = createProductImportSummary({
-      ...productImportSummary,
-      status: 'importing',
-      skipped,
-      message: `Importing ${productsToInsert.length} new product(s) into Supabase…`,
-    });
-    render();
-
-    const importResult = await insertSupabaseProducts(productsToInsert);
-    productImportSummary = createProductImportSummary({
-      ...productImportSummary,
-      status: importResult.failed > 0 ? 'error' : 'complete',
-      inserted: importResult.inserted,
-      skipped,
-      failed: importResult.failed,
-      message: importResult.failed > 0
-        ? 'Some rows failed to import. Check Supabase table policies and required columns.'
-        : 'CSV import complete. Discovery Results refreshed automatically.',
-    });
-
-    discoveryDataSource = 'supabase';
-    await fetchProductsFromSupabase();
-  } catch (error) {
-    productImportSummary = createProductImportSummary({
-      ...productImportSummary,
-      status: 'error',
-      failed: productImportSummary.validRows || 0,
-      message: error.message,
-    });
-    render();
-  }
 }
 
 function detectPlatform(url) {
@@ -945,88 +666,6 @@ function renderImportLinks() {
 
 
 
-function renderProductImportPanel() {
-  const canImportToSupabase = isSupabaseConfigured();
-  const summary = productImportSummary;
-  const invalidPreview = summary.invalidExamples.length > 0
-    ? `<ul class="import-errors">${summary.invalidExamples
-      .map((example) => `<li>Row ${example.rowNumber}: ${escapeHtml(example.errors.join('; '))}</li>`)
-      .join('')}</ul>`
-    : '';
-  const summaryMarkup = summary.status === 'idle'
-    ? '<p class="source-label">Upload a CSV with platform, target, title, price, commission, sales, image_url, and product_url columns.</p>'
-    : `
-      <div class="csv-import-summary ${escapeHtml(summary.status)}">
-        <p><strong>${escapeHtml(summary.fileName || 'CSV import')}</strong> — ${escapeHtml(summary.message)}</p>
-        <div class="csv-import-stats" aria-label="CSV import summary">
-          <span>Total rows: <strong>${summary.totalRows}</strong></span>
-          <span>Valid rows: <strong>${summary.validRows}</strong></span>
-          <span>Invalid rows: <strong>${summary.invalidRows}</strong></span>
-          <span>Inserted: <strong>${summary.inserted}</strong></span>
-          <span>Skipped: <strong>${summary.skipped}</strong></span>
-          <span>Failed: <strong>${summary.failed}</strong></span>
-        </div>
-        ${invalidPreview}
-      </div>
-    `;
-
-  return `
-    <section class="csv-import-panel" aria-label="Bulk product import">
-      <div>
-        <p class="eyebrow">Supabase Bulk Import</p>
-        <h2>Import Products</h2>
-        <p class="source-label">CSV rows import into the Supabase products table and skip duplicates by product_url.</p>
-      </div>
-      <div class="csv-import-actions">
-        <button class="import-products-button" ${summary.status === 'validating' || summary.status === 'importing' ? 'disabled' : ''} id="import-products-button" type="button">
-          Import Products
-        </button>
-        <input accept=".csv,text/csv" class="visually-hidden" id="csv-product-file" type="file" />
-        <span class="source-label">${canImportToSupabase ? 'Supabase import ready' : 'Supabase config required before import'}</span>
-      </div>
-      ${summaryMarkup}
-    </section>
-  `;
-}
-
-function renderRealDataSourceSetupPanel() {
-  if (activeTab !== 'auto') return '';
-
-  const providerRows = Object.values(realDataSourceConfig.providers)
-    .map(
-      (provider) => `
-        <tr>
-          <td>${escapeHtml(provider.label)}</td>
-          <td>${escapeHtml(provider.status)}</td>
-          <td>${escapeHtml(provider.endpoint || 'Backend/API endpoint not configured')}</td>
-        </tr>
-      `,
-    )
-    .join('');
-
-  return `
-    <section class="real-source-panel" aria-label="Real Data Source Setup">
-      <div>
-        <p class="eyebrow">Real Data Source Setup</p>
-        <h2>${isSupabasePrimaryActive() ? 'Supabase Product Warehouse Connected' : 'Real Data Source Not Connected'}</h2>
-        <p class="source-label">${isSupabasePrimaryActive() ? 'Supabase is the active Product Command Center database source. Marketplace provider APIs still require backend sync jobs.' : 'Local preview remains the fallback. Real Shopee, TikTok and Lazada product data requires a backend/API connector or a prepared External JSON Database feed.'}</p>
-      </div>
-      <div class="data-source-table-wrap">
-        <table class="data-source-table">
-          <thead>
-            <tr>
-              <th>Future Source</th>
-              <th>Status</th>
-              <th>Configuration</th>
-            </tr>
-          </thead>
-          <tbody>${providerRows}</tbody>
-        </table>
-      </div>
-    </section>
-  `;
-}
-
 function isSupabasePrimaryActive() {
   return discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready';
 }
@@ -1040,100 +679,54 @@ function getDiscoverySourceLabel() {
 function renderDataSourceStatusPanel() {
   if (activeTab !== 'auto') return '';
 
-  const activeSourceName = getDiscoverySourceLabel();
-  const activeSourceLabel = isSupabasePrimaryActive()
-    ? `Supabase Product Warehouse (${supabaseProducts.length} products loaded)`
-    : discoveryDataSource === 'external' && externalSourceStatus === 'ready'
-      ? `External JSON Database (${externalProducts.length} products loaded)`
-      : 'Local Preview Dataset';
-  const sourceMessage = isSupabasePrimaryActive()
-    ? 'Supabase Product Warehouse is connected and is the primary discovery source. Local Preview Dataset is available only as fallback if Supabase fails.'
-    : discoveryDataSource === 'supabase'
-      ? 'Supabase Product Warehouse is selected but not ready. Local Preview Dataset is used as fallback until Supabase loads successfully.'
-      : discoveryDataSource === 'external'
-        ? 'External JSON Database fetches product records from the provided JSON URL only. Marketplace APIs are still not connected and the frontend does not scrape marketplace pages.'
-        : 'TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.';
+  const supabaseConnected = isSupabasePrimaryActive();
+  const supabaseStatus = supabaseConnected ? 'Connected' : 'Not Connected / Fallback Active';
+  const productsLoaded = supabaseConnected ? supabaseProducts.length : 0;
+  const fallbackRow = !supabaseConnected && (supabaseSourceStatus === 'error' || discoveryDataSource === 'supabase')
+    ? '<article><h3>Local Preview Dataset</h3><p>Fallback Active</p></article>'
+    : '';
   const errorMessage = [supabaseSourceError, externalSourceError]
     .filter(Boolean)
     .map((message) => `<p class="source-error">${escapeHtml(message)}</p>`)
     .join('');
-  const loadingMessage = [
-    supabaseSourceStatus === 'loading' ? 'Loading Supabase Product Warehouse…' : '',
-    externalSourceStatus === 'loading' ? 'Loading External JSON Database…' : '',
-  ]
-    .filter(Boolean)
-    .map((message) => `<p class="source-loading">${message}</p>`)
-    .join('');
-
-  const rows = [
-    ['Supabase Product Warehouse', activeSourceName, isSupabasePrimaryActive() ? 'Connected' : 'Not connected / fallback active', 'Supabase products table via anon key'],
-    ['TikTok Shop data provider', 'Backend sync required', 'Not connected', 'TikTok Shop / Kalodata / backend API'],
-    ['Shopee product/affiliate API', 'Backend sync required', 'Not connected', 'Shopee Affiliate/Product API or backend API'],
-    ['Lazada product/affiliate API', 'Backend sync required', 'Not connected', 'Lazada Affiliate/Product API or backend API'],
-    ['Kalodata API', 'Backend sync required', 'Not connected', 'Kalodata / backend API'],
-  ];
+  const loadingMessage = supabaseSourceStatus === 'loading'
+    ? '<p class="source-loading">Loading Supabase Product Warehouse…</p>'
+    : '';
 
   return `
-    <section class="data-source-panel" aria-label="Data Source Status">
-      <div class="data-source-header">
-        <div>
-          <p class="eyebrow">Data Source Status</p>
-          <h2>${escapeHtml(activeSourceLabel)}</h2>
-          <p class="source-label">${escapeHtml(sourceMessage)}</p>
-          ${loadingMessage}
-          ${errorMessage}
-        </div>
-        <span class="local-preview-badge ${isSupabasePrimaryActive() ? 'connected' : ''}">${isSupabasePrimaryActive() ? 'SUPABASE PRODUCT WAREHOUSE ACTIVE' : 'LOCAL PREVIEW DATA — NOT LIVE PLATFORM DATA'}</span>
+    <section class="data-source-panel compact-data-sources" aria-label="Data Sources">
+      <div class="compact-source-header">
+        <p class="eyebrow">DATA SOURCES</p>
+        <span>${productsLoaded} products loaded</span>
       </div>
-
-      <div class="platform-status-grid" aria-label="Platform connector summary">
+      ${loadingMessage}
+      ${errorMessage}
+      <div class="compact-source-grid">
         <article>
           <h3>Supabase Product Warehouse</h3>
-          <p>${isSupabasePrimaryActive() ? 'Connected' : 'Not connected / fallback active'}</p>
+          <p>${supabaseStatus}</p>
         </article>
         <article>
-          <h3>TikTok Shop data provider</h3>
-          <p>Not connected</p>
+          <h3>Products Loaded</h3>
+          <p>${productsLoaded}</p>
         </article>
         <article>
-          <h3>Shopee product/affiliate API</h3>
-          <p>Not connected</p>
+          <h3>Shopee Affiliate API</h3>
+          <p>Not Connected</p>
         </article>
         <article>
-          <h3>Lazada product/affiliate API</h3>
-          <p>Not connected</p>
+          <h3>TikTok Shop Provider</h3>
+          <p>Not Connected</p>
+        </article>
+        <article>
+          <h3>Lazada Affiliate API</h3>
+          <p>Not Connected</p>
         </article>
         <article>
           <h3>Kalodata API</h3>
-          <p>Not connected</p>
+          <p>Not Connected</p>
         </article>
-      </div>
-
-      <div class="data-source-table-wrap">
-        <table class="data-source-table">
-          <thead>
-            <tr>
-              <th>Source</th>
-              <th>Current Role</th>
-              <th>Status</th>
-              <th>Required Integration</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows
-              .map(
-                ([platform, currentSource, connectorStatus, requiredIntegration]) => `
-                  <tr>
-                    <td>${escapeHtml(platform)}</td>
-                    <td>${escapeHtml(currentSource)}</td>
-                    <td>${escapeHtml(connectorStatus)}</td>
-                    <td>${escapeHtml(requiredIntegration)}</td>
-                  </tr>
-                `,
-              )
-              .join('')}
-          </tbody>
-        </table>
+        ${fallbackRow}
       </div>
     </section>
   `;
@@ -1218,8 +811,6 @@ function renderProductCommandCenter() {
             <button class="${activeTab === 'import' ? 'active' : ''}" data-tab="import" type="button">Import Links</button>
           </div>
           ${activeTab === 'auto' ? renderDiscoveryFilters() : renderImportLinks()}
-          ${activeTab === 'auto' ? renderProductImportPanel() : ''}
-          ${renderRealDataSourceSetupPanel()}
           ${renderDataSourceStatusPanel()}
           ${renderDiscoveryResults()}
         </div>
@@ -1301,18 +892,6 @@ function attachProductCommandCenterEvents() {
     const externalInput = document.querySelector('#external-json-url');
     externalInput?.focus();
     externalInput?.setSelectionRange(event.target.value.length, event.target.value.length);
-  });
-
-
-  document.querySelector('#import-products-button')?.addEventListener('click', () => {
-    document.querySelector('#csv-product-file')?.click();
-  });
-
-  document.querySelector('#csv-product-file')?.addEventListener('change', (event) => {
-    const [file] = Array.from(event.target.files || []);
-    if (!file) return;
-    importCsvProductsToSupabase(file);
-    event.target.value = '';
   });
 
   document.querySelector('#platform-filter')?.addEventListener('change', (event) => {
