@@ -628,3 +628,92 @@ h1 {
   background: #0f766e;
   color: #ffffff;
 }
+
+.csv-import-panel {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 28px;
+  padding: 22px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+  box-shadow: 0 18px 48px rgba(15, 118, 110, 0.1);
+}
+
+.csv-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.import-products-button {
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  background: #0f766e;
+  color: #ffffff;
+  font-weight: 950;
+  box-shadow: 0 12px 24px rgba(15, 118, 110, 0.22);
+}
+
+.import-products-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.csv-import-summary {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.csv-import-summary.error {
+  border-color: rgba(200, 30, 58, 0.28);
+  background: #fff5f6;
+}
+
+.csv-import-summary p {
+  margin-bottom: 0;
+  color: #334155;
+}
+
+.csv-import-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.csv-import-stats span {
+  border-radius: 14px;
+  padding: 10px;
+  background: #ecfdf5;
+  color: #0f766e;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.import-errors {
+  margin: 0;
+  padding-left: 18px;
+  color: #c81e3a;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+@media (max-width: 780px) {
+  .csv-import-stats {
+    grid-template-columns: 1fr;
+  }
+}

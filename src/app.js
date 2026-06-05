@@ -2,6 +2,9 @@ const maxSelectedProducts = 10;
 const productStorageKey = 'selectedProducts';
 const platformOptions = ['All Platforms', 'TikTok', 'Shopee', 'Lazada'];
 const targetOptions = ['All', 'High Commission', 'High Profit', 'Best Seller', 'Trending', 'New Arrival'];
+const csvImportColumns = ['platform', 'target', 'title', 'price', 'commission', 'sales', 'image_url', 'product_url'];
+const supabaseImportChunkSize = 100;
+const supabaseFetchPageSize = 1000;
 const importLinks = Array.from({ length: maxSelectedProducts }, () => '');
 const appScriptUrl = (typeof document !== 'undefined' && document.currentScript?.src) || 'src/app.js';
 const defaultDataSourceConfig = {
@@ -37,6 +40,7 @@ let externalFetchRequestId = 0;
 let supabaseProducts = [];
 let supabaseSourceStatus = 'idle';
 let supabaseSourceError = '';
+let productImportSummary = createProductImportSummary();
 let selectedProducts = readSelectedProducts();
 
 function platformImage(platform, title = 'Product Preview') {
@@ -256,18 +260,24 @@ async function fetchProductsFromSupabase() {
     const baseUrl = runtimeDataSourceConfig.SUPABASE_URL.replace(/\/$/, '');
     const selectColumns = 'id,platform,title,image_url,price,commission,total_sales,target_tags,source_url,data_source,fetched_at,created_at,updated_at';
     const requestUrl = `${baseUrl}/rest/v1/products?select=${encodeURIComponent(selectColumns)}&order=fetched_at.desc.nullslast,created_at.desc`;
-    const response = await fetch(requestUrl, {
-      headers: {
-        apikey: runtimeDataSourceConfig.SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${runtimeDataSourceConfig.SUPABASE_ANON_KEY}`,
-        Accept: 'application/json',
-      },
-    });
+    const rows = [];
 
-    if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
+    for (let offset = 0; ; offset += supabaseFetchPageSize) {
+      const response = await fetch(requestUrl, {
+        headers: supabaseRequestHeaders({
+          Range: `${offset}-${offset + supabaseFetchPageSize - 1}`,
+          'Range-Unit': 'items',
+        }),
+      });
 
-    const rows = await response.json();
-    if (!Array.isArray(rows)) throw new Error('Supabase products response was not an array');
+      if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
+
+      const pageRows = await response.json();
+      if (!Array.isArray(pageRows)) throw new Error('Supabase products response was not an array');
+
+      rows.push(...pageRows);
+      if (pageRows.length < supabaseFetchPageSize) break;
+    }
 
     supabaseProducts = rows.map(normalizeSupabaseProduct);
     supabaseSourceStatus = 'ready';
@@ -354,6 +364,280 @@ async function loadExternalDatabase() {
   }
 
   render();
+}
+
+
+function createProductImportSummary(overrides = {}) {
+  return {
+    status: 'idle',
+    fileName: '',
+    totalRows: 0,
+    validRows: 0,
+    invalidRows: 0,
+    inserted: 0,
+    skipped: 0,
+    failed: 0,
+    message: '',
+    invalidExamples: [],
+    ...overrides,
+  };
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let insideQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    const nextCharacter = text[index + 1];
+
+    if (character === '"') {
+      if (insideQuotes && nextCharacter === '"') {
+        field += '"';
+        index += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (character === ',' && !insideQuotes) {
+      row.push(field);
+      field = '';
+    } else if ((character === '\n' || character === '\r') && !insideQuotes) {
+      if (character === '\r' && nextCharacter === '\n') index += 1;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else {
+      field += character;
+    }
+  }
+
+  row.push(field);
+  rows.push(row);
+
+  return rows.filter((csvRow) => csvRow.some((value) => value.trim() !== ''));
+}
+
+function canonicalCsvPlatform(value) {
+  const normalizedPlatform = String(value || '').trim().toLowerCase();
+  if (normalizedPlatform.includes('tiktok')) return 'TikTok';
+  if (normalizedPlatform.includes('shopee')) return 'Shopee';
+  if (normalizedPlatform.includes('lazada')) return 'Lazada';
+  return '';
+}
+
+function splitTargetTags(value) {
+  return String(value || '')
+    .split(/[;|]/)
+    .map((target) => target.trim())
+    .filter(Boolean);
+}
+
+function hasValidUrl(value) {
+  return Boolean(getUrlObject(String(value || '').trim()));
+}
+
+function validateCsvProducts(csvText) {
+  const rows = parseCsv(csvText);
+  if (rows.length === 0) throw new Error('CSV file is empty');
+
+  const headers = rows[0].map((header) => header.trim().toLowerCase());
+  const missingColumns = csvImportColumns.filter((column) => !headers.includes(column));
+  if (missingColumns.length > 0) {
+    throw new Error(`Missing required CSV columns: ${missingColumns.join(', ')}`);
+  }
+
+  const columnIndexes = Object.fromEntries(csvImportColumns.map((column) => [column, headers.indexOf(column)]));
+  const validProducts = [];
+  const invalidExamples = [];
+  const dataRows = rows.slice(1).filter((row) => row.some((value) => value.trim() !== ''));
+
+  dataRows.forEach((row, rowIndex) => {
+    const rowNumber = rowIndex + 2;
+    const getValue = (column) => String(row[columnIndexes[column]] || '').trim();
+    const platform = canonicalCsvPlatform(getValue('platform'));
+    const targetTags = splitTargetTags(getValue('target'));
+    const title = getValue('title');
+    const price = getValue('price');
+    const commission = getValue('commission');
+    const totalSales = getValue('sales');
+    const imageUrl = getValue('image_url');
+    const productUrl = getValue('product_url');
+    const errors = [];
+
+    if (!platform) errors.push('platform must be TikTok, Shopee, or Lazada');
+    if (targetTags.length === 0) errors.push('target is required');
+    if (!title) errors.push('title is required');
+    if (!price) errors.push('price is required');
+    if (!commission) errors.push('commission is required');
+    if (!totalSales) errors.push('sales is required');
+    if (!imageUrl || !hasValidUrl(imageUrl)) errors.push('image_url must be a valid URL');
+    if (!productUrl || !hasValidUrl(productUrl)) errors.push('product_url must be a valid URL');
+
+    if (errors.length > 0) {
+      invalidExamples.push({ rowNumber, errors });
+      return;
+    }
+
+    validProducts.push({
+      platform,
+      title,
+      image_url: imageUrl,
+      price,
+      commission,
+      total_sales: totalSales,
+      target_tags: targetTags,
+      source_url: productUrl,
+      data_source: 'csv_upload',
+      fetched_at: new Date().toISOString(),
+    });
+  });
+
+  return {
+    totalRows: dataRows.length,
+    validProducts,
+    invalidExamples,
+  };
+}
+
+function supabaseRequestHeaders(extraHeaders = {}) {
+  return {
+    apikey: runtimeDataSourceConfig.SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${runtimeDataSourceConfig.SUPABASE_ANON_KEY}`,
+    Accept: 'application/json',
+    ...extraHeaders,
+  };
+}
+
+function supabaseProductsEndpoint(query = '') {
+  const baseUrl = runtimeDataSourceConfig.SUPABASE_URL.replace(/\/$/, '');
+  return `${baseUrl}/rest/v1/products${query}`;
+}
+
+function encodePostgrestInValues(values) {
+  return encodeURIComponent(`in.(${values.map((value) => `"${String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(',')})`);
+}
+
+async function fetchExistingSupabaseProductUrls(productUrls) {
+  const existingUrls = new Set();
+
+  for (let index = 0; index < productUrls.length; index += supabaseImportChunkSize) {
+    const batch = productUrls.slice(index, index + supabaseImportChunkSize);
+    if (batch.length === 0) continue;
+
+    const response = await fetch(supabaseProductsEndpoint(`?select=source_url&source_url=${encodePostgrestInValues(batch)}`), {
+      headers: supabaseRequestHeaders(),
+    });
+
+    if (!response.ok) throw new Error(`Duplicate check failed with Supabase HTTP ${response.status}`);
+
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error('Duplicate check response was not an array');
+    rows.forEach((row) => {
+      if (row.source_url) existingUrls.add(row.source_url);
+    });
+  }
+
+  return existingUrls;
+}
+
+async function insertSupabaseProducts(products) {
+  let inserted = 0;
+  let failed = 0;
+
+  for (let index = 0; index < products.length; index += supabaseImportChunkSize) {
+    const batch = products.slice(index, index + supabaseImportChunkSize);
+    const response = await fetch(supabaseProductsEndpoint(), {
+      method: 'POST',
+      headers: supabaseRequestHeaders({
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      }),
+      body: JSON.stringify(batch),
+    });
+
+    if (response.ok) {
+      inserted += batch.length;
+    } else {
+      failed += batch.length;
+    }
+  }
+
+  return { inserted, failed };
+}
+
+async function importCsvProductsToSupabase(file) {
+  productImportSummary = createProductImportSummary({
+    status: 'validating',
+    fileName: file.name,
+    message: 'Validating CSV rows before Supabase import…',
+  });
+  render();
+
+  try {
+    if (!isSupabaseConfigured()) {
+      throw new Error('Supabase Product Warehouse is not configured. Set USE_SUPABASE to true and provide the public anon key before importing products.');
+    }
+
+    const csvText = await file.text();
+    const validation = validateCsvProducts(csvText);
+    const skippedDuplicateUrls = new Set();
+    const uniqueValidProducts = validation.validProducts.filter((product) => {
+      if (skippedDuplicateUrls.has(product.source_url)) return false;
+      skippedDuplicateUrls.add(product.source_url);
+      return true;
+    });
+    const duplicateRowsInFile = validation.validProducts.length - uniqueValidProducts.length;
+
+    productImportSummary = createProductImportSummary({
+      status: 'importing',
+      fileName: file.name,
+      totalRows: validation.totalRows,
+      validRows: validation.validProducts.length,
+      invalidRows: validation.invalidExamples.length,
+      skipped: duplicateRowsInFile,
+      invalidExamples: validation.invalidExamples.slice(0, 5),
+      message: 'Checking Supabase for duplicate product_url values…',
+    });
+    render();
+
+    const existingUrls = await fetchExistingSupabaseProductUrls(uniqueValidProducts.map((product) => product.source_url));
+    const productsToInsert = uniqueValidProducts.filter((product) => !existingUrls.has(product.source_url));
+    const skipped = duplicateRowsInFile + existingUrls.size;
+
+    productImportSummary = createProductImportSummary({
+      ...productImportSummary,
+      status: 'importing',
+      skipped,
+      message: `Importing ${productsToInsert.length} new product(s) into Supabase…`,
+    });
+    render();
+
+    const importResult = await insertSupabaseProducts(productsToInsert);
+    productImportSummary = createProductImportSummary({
+      ...productImportSummary,
+      status: importResult.failed > 0 ? 'error' : 'complete',
+      inserted: importResult.inserted,
+      skipped,
+      failed: importResult.failed,
+      message: importResult.failed > 0
+        ? 'Some rows failed to import. Check Supabase table policies and required columns.'
+        : 'CSV import complete. Discovery Results refreshed automatically.',
+    });
+
+    discoveryDataSource = 'supabase';
+    await fetchProductsFromSupabase();
+  } catch (error) {
+    productImportSummary = createProductImportSummary({
+      ...productImportSummary,
+      status: 'error',
+      failed: productImportSummary.validRows || 0,
+      message: error.message,
+    });
+    render();
+  }
 }
 
 function detectPlatform(url) {
@@ -661,6 +945,50 @@ function renderImportLinks() {
 
 
 
+function renderProductImportPanel() {
+  const canImportToSupabase = isSupabaseConfigured();
+  const summary = productImportSummary;
+  const invalidPreview = summary.invalidExamples.length > 0
+    ? `<ul class="import-errors">${summary.invalidExamples
+      .map((example) => `<li>Row ${example.rowNumber}: ${escapeHtml(example.errors.join('; '))}</li>`)
+      .join('')}</ul>`
+    : '';
+  const summaryMarkup = summary.status === 'idle'
+    ? '<p class="source-label">Upload a CSV with platform, target, title, price, commission, sales, image_url, and product_url columns.</p>'
+    : `
+      <div class="csv-import-summary ${escapeHtml(summary.status)}">
+        <p><strong>${escapeHtml(summary.fileName || 'CSV import')}</strong> — ${escapeHtml(summary.message)}</p>
+        <div class="csv-import-stats" aria-label="CSV import summary">
+          <span>Total rows: <strong>${summary.totalRows}</strong></span>
+          <span>Valid rows: <strong>${summary.validRows}</strong></span>
+          <span>Invalid rows: <strong>${summary.invalidRows}</strong></span>
+          <span>Inserted: <strong>${summary.inserted}</strong></span>
+          <span>Skipped: <strong>${summary.skipped}</strong></span>
+          <span>Failed: <strong>${summary.failed}</strong></span>
+        </div>
+        ${invalidPreview}
+      </div>
+    `;
+
+  return `
+    <section class="csv-import-panel" aria-label="Bulk product import">
+      <div>
+        <p class="eyebrow">Supabase Bulk Import</p>
+        <h2>Import Products</h2>
+        <p class="source-label">CSV rows import into the Supabase products table and skip duplicates by product_url.</p>
+      </div>
+      <div class="csv-import-actions">
+        <button class="import-products-button" ${summary.status === 'validating' || summary.status === 'importing' ? 'disabled' : ''} id="import-products-button" type="button">
+          Import Products
+        </button>
+        <input accept=".csv,text/csv" class="visually-hidden" id="csv-product-file" type="file" />
+        <span class="source-label">${canImportToSupabase ? 'Supabase import ready' : 'Supabase config required before import'}</span>
+      </div>
+      ${summaryMarkup}
+    </section>
+  `;
+}
+
 function renderRealDataSourceSetupPanel() {
   if (activeTab !== 'auto') return '';
 
@@ -890,6 +1218,7 @@ function renderProductCommandCenter() {
             <button class="${activeTab === 'import' ? 'active' : ''}" data-tab="import" type="button">Import Links</button>
           </div>
           ${activeTab === 'auto' ? renderDiscoveryFilters() : renderImportLinks()}
+          ${activeTab === 'auto' ? renderProductImportPanel() : ''}
           ${renderRealDataSourceSetupPanel()}
           ${renderDataSourceStatusPanel()}
           ${renderDiscoveryResults()}
@@ -972,6 +1301,18 @@ function attachProductCommandCenterEvents() {
     const externalInput = document.querySelector('#external-json-url');
     externalInput?.focus();
     externalInput?.setSelectionRange(event.target.value.length, event.target.value.length);
+  });
+
+
+  document.querySelector('#import-products-button')?.addEventListener('click', () => {
+    document.querySelector('#csv-product-file')?.click();
+  });
+
+  document.querySelector('#csv-product-file')?.addEventListener('change', (event) => {
+    const [file] = Array.from(event.target.files || []);
+    if (!file) return;
+    importCsvProductsToSupabase(file);
+    event.target.value = '';
   });
 
   document.querySelector('#platform-filter')?.addEventListener('change', (event) => {
