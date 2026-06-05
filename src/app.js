@@ -1,88 +1,20 @@
-const platformOptions = ['All Platforms', 'TikTok', 'Shopee', 'Lazada'];
-const targetOptions = ['All', 'High Commission', 'High Profit', 'Best Seller', 'Trending', 'New Arrival'];
 const maxSelectedProducts = 10;
-
-const discoveryProducts = [
-  {
-    id: 'pcc-001',
-    platform: 'TikTok',
-    target: ['High Commission', 'Trending'],
-    name: 'Wireless Lavalier Mic Pro',
-    price: '฿590',
-    commission: '18%',
-    totalSales: '12.4K',
-    thumbnail: 'https://images.unsplash.com/photo-1589903308904-1010c2294adc?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: 'pcc-002',
-    platform: 'Shopee',
-    target: ['Best Seller', 'High Profit'],
-    name: 'Smart LED Sunset Lamp',
-    price: '฿249',
-    commission: '12%',
-    totalSales: '48.1K',
-    thumbnail: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: 'pcc-003',
-    platform: 'Lazada',
-    target: ['New Arrival', 'High Profit'],
-    name: 'Portable Mini Blender',
-    price: '฿799',
-    commission: '15%',
-    totalSales: '6.8K',
-    thumbnail: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: 'pcc-004',
-    platform: 'TikTok',
-    target: ['Best Seller', 'High Commission'],
-    name: 'Magnetic Phone Cooler',
-    price: '฿459',
-    commission: '20%',
-    totalSales: '21.7K',
-    thumbnail: 'https://images.unsplash.com/photo-1601524909162-ae8725290836?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: 'pcc-005',
-    platform: 'Shopee',
-    target: ['Trending', 'New Arrival'],
-    name: 'Foldable Travel Organizer',
-    price: '฿189',
-    commission: '10%',
-    totalSales: '15.9K',
-    thumbnail: 'https://images.unsplash.com/photo-1553531889-e6cf4d692b1b?auto=format&fit=crop&w=300&q=80',
-  },
-  {
-    id: 'pcc-006',
-    platform: 'Lazada',
-    target: ['High Commission', 'Best Seller'],
-    name: 'Automatic Soap Dispenser',
-    price: '฿329',
-    commission: '17%',
-    totalSales: '31.2K',
-    thumbnail: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&w=300&q=80',
-  },
-];
-
-let activeTab = 'auto';
-let platformFilter = 'All Platforms';
-let targetFilter = 'All';
-let importLinks = Array.from({ length: 10 }, () => '');
-let selectedProducts = [];
+const productStorageKey = 'selectedProducts';
+const importLinks = Array.from({ length: maxSelectedProducts }, () => '');
+let selectedProducts = readSelectedProducts();
 
 function detectPlatform(url) {
   const normalizedUrl = url.toLowerCase();
 
   if (!normalizedUrl.trim()) return '';
-  if (normalizedUrl.includes('tiktok')) return 'TikTok';
+  if (normalizedUrl.includes('tiktok')) return 'TikTok Shop';
   if (normalizedUrl.includes('shopee')) return 'Shopee';
   if (normalizedUrl.includes('lazada')) return 'Lazada';
-  return 'Unknown';
+  return 'Unsupported';
 }
 
 function escapeHtml(value) {
-  return String(value)
+  return String(value ?? '')
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
@@ -90,29 +22,166 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-function getFilteredProducts() {
-  return discoveryProducts.filter((product) => {
-    const matchesPlatform = platformFilter === 'All Platforms' || product.platform === platformFilter;
-    const matchesTarget = targetFilter === 'All' || product.target.includes(targetFilter);
-
-    return matchesPlatform && matchesTarget;
-  });
+function readSelectedProducts() {
+  try {
+    const savedProducts = JSON.parse(localStorage.getItem(productStorageKey) || '[]');
+    return Array.isArray(savedProducts) ? savedProducts.slice(0, maxSelectedProducts) : [];
+  } catch {
+    return [];
+  }
 }
 
-function renderOptions(options, selectedValue) {
-  return options
-    .map((option) => `<option value="${escapeHtml(option)}" ${option === selectedValue ? 'selected' : ''}>${escapeHtml(option)}</option>`)
-    .join('');
+function saveSelectedProducts() {
+  localStorage.setItem(productStorageKey, JSON.stringify(selectedProducts.slice(0, maxSelectedProducts)));
+}
+
+function getUrlObject(url) {
+  try {
+    return new URL(url);
+  } catch {
+    return null;
+  }
+}
+
+function getQueryValue(urlObject, keys) {
+  return keys.map((key) => urlObject.searchParams.get(key)).find(Boolean) || '';
+}
+
+function cleanTitleSegment(segment) {
+  return decodeURIComponent(segment)
+    .replace(/[-_]+/g, ' ')
+    .replace(/\.(html?|php)$/i, '')
+    .replace(/\bi\d+\b/gi, '')
+    .replace(/\b\d{5,}\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function titleFromPath(urlObject, platform) {
+  const titleCandidate = urlObject.pathname
+    .split('/')
+    .filter(Boolean)
+    .map(cleanTitleSegment)
+    .filter((segment) => segment && !['product', 'products', 'item', 'shop', 'mall', 'p'].includes(segment.toLowerCase()))
+    .sort((first, second) => second.length - first.length)[0];
+
+  return titleCandidate || `${platform} Product`;
+}
+
+function formatPrice(value) {
+  if (!value) return 'Price unavailable';
+  const decodedValue = decodeURIComponent(value).replace(/[,+]/g, '').trim();
+  const numericValue = decodedValue.match(/\d+(?:\.\d{1,2})?/);
+
+  if (!numericValue) return decodedValue;
+  if (/฿|thb|baht/i.test(decodedValue)) return `฿${numericValue[0]}`;
+  return decodedValue.startsWith('$') ? `$${numericValue[0]}` : `฿${numericValue[0]}`;
+}
+
+function platformImage(platform) {
+  const colors = {
+    'TikTok Shop': ['#111827', '#22d3ee'],
+    Shopee: ['#ee4d2d', '#fff0e8'],
+    Lazada: ['#2636d9', '#edf0ff'],
+    Unsupported: ['#64748b', '#e2e8f0'],
+  };
+  const [primary, secondary] = colors[platform] || colors.Unsupported;
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+      <rect width="640" height="420" rx="42" fill="${secondary}"/>
+      <circle cx="500" cy="84" r="112" fill="${primary}" opacity="0.16"/>
+      <rect x="70" y="92" width="500" height="236" rx="34" fill="white" opacity="0.86"/>
+      <text x="320" y="194" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="${primary}">${platform}</text>
+      <text x="320" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#64748b">Product Preview</text>
+    </svg>
+  `;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function extractProductFromUrl(url, index) {
+  const trimmedUrl = url.trim();
+  const urlObject = getUrlObject(trimmedUrl);
+
+  if (!trimmedUrl || !urlObject) return null;
+
+  const platform = detectPlatform(trimmedUrl);
+  if (platform === 'Unsupported') {
+    return {
+      id: `unsupported-${index}-${trimmedUrl}`,
+      title: 'Unsupported product URL',
+      image: platformImage(platform),
+      price: 'Price unavailable',
+      platform,
+      productUrl: trimmedUrl,
+      supported: false,
+    };
+  }
+
+  const title = getQueryValue(urlObject, ['title', 'name', 'product_name', 'item_title']) || titleFromPath(urlObject, platform);
+  const image = getQueryValue(urlObject, ['image', 'img', 'thumbnail', 'thumb', 'imageUrl', 'pic']) || platformImage(platform);
+  const price = formatPrice(getQueryValue(urlObject, ['price', 'sale_price', 'amount', 'minPrice', 'current_price']));
+
+  return {
+    id: `${platform}-${urlObject.hostname}-${urlObject.pathname}-${urlObject.search}`,
+    title,
+    image,
+    price,
+    platform,
+    productUrl: trimmedUrl,
+    supported: true,
+  };
+}
+
+function getImportedProducts() {
+  return importLinks.map(extractProductFromUrl).filter(Boolean).slice(0, maxSelectedProducts);
+}
+
+function isSelected(product) {
+  return selectedProducts.some((selectedProduct) => selectedProduct.id === product.id);
+}
+
+function toggleProduct(product) {
+  if (!product.supported) return;
+
+  if (isSelected(product)) {
+    selectedProducts = selectedProducts.filter((selectedProduct) => selectedProduct.id !== product.id);
+  } else if (selectedProducts.length < maxSelectedProducts) {
+    selectedProducts = [...selectedProducts, product];
+  }
+
+  saveSelectedProducts();
+  render();
+}
+
+function removeSelectedProduct(productId) {
+  selectedProducts = selectedProducts.filter((product) => product.id !== productId);
+  saveSelectedProducts();
+  render();
+}
+
+function renderImportedProductCard(product) {
+  return `
+    <button class="product-card ${isSelected(product) ? 'selected' : ''} ${!product.supported ? 'disabled' : ''}" data-product-id="${escapeHtml(product.id)}" type="button">
+      <img alt="" src="${escapeHtml(product.image)}" />
+      <div class="product-info">
+        <span class="platform-chip">${escapeHtml(product.platform)}</span>
+        <h3>${escapeHtml(product.title)}</h3>
+        <div class="product-metrics">
+          <span>${escapeHtml(product.price)}</span>
+          <span>${escapeHtml(product.productUrl)}</span>
+        </div>
+      </div>
+    </button>
+  `;
 }
 
 function renderImportLinks() {
-  if (activeTab !== 'import') return '';
-
   const rows = importLinks
     .map((link, index) => {
       const detectedPlatform = detectPlatform(link);
       const badge = detectedPlatform
-        ? `<span class="platform-badge ${detectedPlatform.toLowerCase()}">${escapeHtml(detectedPlatform)}</span>`
+        ? `<span class="platform-badge ${detectedPlatform.toLowerCase().replaceAll(' ', '-')}">${escapeHtml(detectedPlatform)}</span>`
         : '';
 
       return `
@@ -120,7 +189,7 @@ function renderImportLinks() {
           <input
             aria-label="Product URL ${index + 1}"
             data-link-index="${index}"
-            placeholder="Product URL ${index + 1}"
+            placeholder="Paste Shopee, TikTok Shop or Lazada URL ${index + 1}"
             type="url"
             value="${escapeHtml(link)}"
           />
@@ -130,54 +199,46 @@ function renderImportLinks() {
     })
     .join('');
 
-  return `<section class="import-panel" aria-label="Import product links">${rows}</section>`;
+  return `
+    <section class="import-panel" aria-label="Import product links">
+      <div class="section-heading compact-heading">
+        <h2>Import Links</h2>
+        <span>${maxSelectedProducts} URLs max</span>
+      </div>
+      ${rows}
+    </section>
+  `;
 }
 
 function renderDiscoveryResults() {
-  const filteredProducts = getFilteredProducts();
-  const productCards = filteredProducts
-    .map((product) => {
-      const isSelected = selectedProducts.some((selectedProduct) => selectedProduct.id === product.id);
-
-      return `
-        <button class="product-card ${isSelected ? 'selected' : ''}" data-product-id="${product.id}" type="button">
-          <img alt="" src="${escapeHtml(product.thumbnail)}" />
-          <div class="product-info">
-            <h3>${escapeHtml(product.name)}</h3>
-            <div class="product-metrics">
-              <span>${escapeHtml(product.price)}</span>
-              <span>${escapeHtml(product.commission)}</span>
-              <span>${escapeHtml(product.totalSales)} sales</span>
-            </div>
-          </div>
-        </button>
-      `;
-    })
-    .join('');
+  const importedProducts = getImportedProducts();
+  const emptyState = importedProducts.length === 0
+    ? '<p class="empty-state">Paste product URLs above to extract products for selection.</p>'
+    : '';
 
   return `
     <section class="results-section">
       <div class="section-heading">
-        <h2>Discovery Results</h2>
-        <span>${filteredProducts.length} products</span>
+        <h2>Imported Products</h2>
+        <span>${importedProducts.length}/${maxSelectedProducts}</span>
       </div>
-      <div class="product-grid">${productCards}</div>
+      <div class="product-grid">${emptyState}${importedProducts.map(renderImportedProductCard).join('')}</div>
     </section>
   `;
 }
 
 function renderSelectedProducts() {
-  const emptyState = selectedProducts.length === 0 ? '<p class="empty-state">Select products to build your queue.</p>' : '';
+  const emptyState = selectedProducts.length === 0 ? '<p class="empty-state">Select imported products to build your queue.</p>' : '';
   const selectedCards = selectedProducts
     .map(
       (product) => `
         <article class="selected-card">
-          <img alt="" src="${escapeHtml(product.thumbnail)}" />
+          <img alt="" src="${escapeHtml(product.image)}" />
           <div>
-            <h3>${escapeHtml(product.name)}</h3>
+            <h3>${escapeHtml(product.title)}</h3>
             <p>${escapeHtml(product.price)}</p>
           </div>
-          <button aria-label="Remove ${escapeHtml(product.name)}" data-remove-product-id="${product.id}" type="button">
+          <button aria-label="Remove ${escapeHtml(product.title)}" data-remove-product-id="${escapeHtml(product.id)}" type="button">
             <span aria-hidden="true">×</span>
           </button>
         </article>
@@ -186,14 +247,14 @@ function renderSelectedProducts() {
     .join('');
 
   return `
-    <aside class="selected-panel" aria-label="Selected Products">
+    <aside class="selected-panel" aria-label="Selected Products Queue">
       <div class="section-heading">
-        <h2>Selected Products</h2>
+        <h2>Selected Products Queue</h2>
         <span>${selectedProducts.length}/${maxSelectedProducts}</span>
       </div>
       <div class="selected-list">${emptyState}${selectedCards}</div>
-      <button class="send-button" ${selectedProducts.length === 0 ? 'disabled' : ''} id="send-to-content" type="button">
-        🚀 Send To Content Generator
+      <button class="send-button" ${selectedProducts.length === 0 ? 'disabled' : ''} id="continue-to-content" type="button">
+        Continue
       </button>
     </aside>
   `;
@@ -204,28 +265,16 @@ function renderProductCommandCenter() {
     <main class="page-shell">
       <section class="hero-panel">
         <div>
-          <p class="eyebrow">Product Discovery</p>
+          <p class="eyebrow">Product Selection Workflow</p>
           <h1>🎯 Product Command Center</h1>
           <p class="description">ค้นหาและคัดเลือกสินค้าที่ต้องการนำไปสร้างคอนเทนต์</p>
         </div>
       </section>
 
-      <section class="filter-bar" aria-label="Product filters">
-        <label>
-          <span>Platform</span>
-          <select id="platform-filter">${renderOptions(platformOptions, platformFilter)}</select>
-        </label>
-        <label>
-          <span>Target</span>
-          <select id="target-filter">${renderOptions(targetOptions, targetFilter)}</select>
-        </label>
-      </section>
-
-      <section class="workspace-grid">
+      <section class="workspace-grid import-workspace">
         <div class="primary-column">
           <div class="tabs" role="tablist" aria-label="Product source tabs">
-            <button class="${activeTab === 'auto' ? 'active' : ''}" data-tab="auto" type="button">Auto Discovery</button>
-            <button class="${activeTab === 'import' ? 'active' : ''}" data-tab="import" type="button">Import Links</button>
+            <button class="active" type="button">Import Links</button>
           </div>
           ${renderImportLinks()}
           ${renderDiscoveryResults()}
@@ -237,41 +286,64 @@ function renderProductCommandCenter() {
 }
 
 function renderContentGeneratorLanding() {
-  const selectedProductsPayload = JSON.parse(sessionStorage.getItem('selectedProducts') || '[]');
+  const savedProducts = readSelectedProducts();
+  const productCards = savedProducts
+    .map(
+      (product) => `
+        <article class="content-product-card">
+          <img alt="" src="${escapeHtml(product.image)}" />
+          <div>
+            <span class="platform-chip">${escapeHtml(product.platform)}</span>
+            <h3>${escapeHtml(product.title)}</h3>
+            <p>${escapeHtml(product.price)}</p>
+            <a href="${escapeHtml(product.productUrl)}" target="_blank" rel="noreferrer">Open product URL</a>
+          </div>
+        </article>
+      `,
+    )
+    .join('');
+  const emptyState = savedProducts.length === 0 ? '<p class="empty-state">No selected products found. Go back and select products first.</p>' : '';
 
   return `
     <main class="page-shell content-landing">
       <section class="hero-panel">
         <div>
           <p class="eyebrow">Content Generator</p>
-          <h1>Products Ready</h1>
-          <p class="description">Received ${selectedProductsPayload.length} selectedProducts[] item(s).</p>
+          <h1>Selected Products</h1>
+          <p class="description">${savedProducts.length} product(s) ready for the next workflow step.</p>
         </div>
       </section>
-      <a class="back-link" href="/">Back to Product Command Center</a>
+      <section class="results-section">
+        <div class="section-heading">
+          <h2>Products From Product Command Center</h2>
+          <span>${savedProducts.length}/${maxSelectedProducts}</span>
+        </div>
+        <div class="content-products-grid">${emptyState}${productCards}</div>
+      </section>
+      <a class="back-link" href="../">Back to Product Command Center</a>
     </main>
   `;
 }
 
 function attachProductCommandCenterEvents() {
-  document.querySelector('#platform-filter')?.addEventListener('change', (event) => {
-    platformFilter = event.target.value;
-    render();
-  });
+  document.querySelectorAll('[data-link-index]').forEach((input) => {
+    input.addEventListener('paste', (event) => {
+      const pastedUrls = event.clipboardData
+        .getData('text')
+        .split(/\s+/)
+        .map((value) => value.trim())
+        .filter((value) => /^https?:\/\//i.test(value));
 
-  document.querySelector('#target-filter')?.addEventListener('change', (event) => {
-    targetFilter = event.target.value;
-    render();
-  });
+      if (pastedUrls.length <= 1) return;
 
-  document.querySelectorAll('[data-tab]').forEach((tabButton) => {
-    tabButton.addEventListener('click', () => {
-      activeTab = tabButton.dataset.tab;
+      event.preventDefault();
+      const startIndex = Number(input.dataset.linkIndex);
+      pastedUrls.slice(0, maxSelectedProducts - startIndex).forEach((url, offset) => {
+        importLinks[startIndex + offset] = url;
+      });
       render();
     });
-  });
 
-  document.querySelectorAll('[data-link-index]').forEach((input) => {
     input.addEventListener('input', (event) => {
       importLinks[Number(input.dataset.linkIndex)] = event.target.value;
       render();
@@ -283,44 +355,25 @@ function attachProductCommandCenterEvents() {
 
   document.querySelectorAll('[data-product-id]').forEach((card) => {
     card.addEventListener('click', () => {
-      const product = discoveryProducts.find((item) => item.id === card.dataset.productId);
-      const isSelected = selectedProducts.some((selectedProduct) => selectedProduct.id === product.id);
-
-      if (isSelected) {
-        selectedProducts = selectedProducts.filter((selectedProduct) => selectedProduct.id !== product.id);
-      } else if (selectedProducts.length < maxSelectedProducts) {
-        selectedProducts = [...selectedProducts, product];
-      }
-
-      render();
+      const product = getImportedProducts().find((item) => item.id === card.dataset.productId);
+      if (product) toggleProduct(product);
     });
   });
 
   document.querySelectorAll('[data-remove-product-id]').forEach((removeButton) => {
-    removeButton.addEventListener('click', () => {
-      selectedProducts = selectedProducts.filter((product) => product.id !== removeButton.dataset.removeProductId);
-      render();
-    });
+    removeButton.addEventListener('click', () => removeSelectedProduct(removeButton.dataset.removeProductId));
   });
 
-  document.querySelector('#send-to-content')?.addEventListener('click', () => {
-    const selectedProductsPayload = selectedProducts.map(({ id, name, price, thumbnail, platform }) => ({
-      id,
-      name,
-      price,
-      thumbnail,
-      platform,
-    }));
-
-    sessionStorage.setItem('selectedProducts', JSON.stringify(selectedProductsPayload));
-    window.location.href = '/content-generator';
+  document.querySelector('#continue-to-content')?.addEventListener('click', () => {
+    saveSelectedProducts();
+    window.location.href = 'content-generator/';
   });
 }
 
 function render() {
   const root = document.querySelector('#root');
 
-  if (window.location.pathname === '/content-generator') {
+  if (window.location.pathname.replace(/\/$/, '').endsWith('/content-generator')) {
     root.innerHTML = renderContentGeneratorLanding();
     return;
   }
