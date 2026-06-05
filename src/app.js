@@ -3,6 +3,13 @@ const productStorageKey = 'selectedProducts';
 const platformOptions = ['All Platforms', 'TikTok', 'Shopee', 'Lazada'];
 const targetOptions = ['All', 'High Commission', 'High Profit', 'Best Seller', 'Trending', 'New Arrival'];
 const importLinks = Array.from({ length: maxSelectedProducts }, () => '');
+const appScriptUrl = (typeof document !== 'undefined' && document.currentScript?.src) || 'src/app.js';
+const defaultDataSourceConfig = {
+  SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
+  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  USE_SUPABASE: false,
+};
+let runtimeDataSourceConfig = { ...defaultDataSourceConfig };
 const realDataSourceConfig = {
   status: 'not-connected',
   notice: 'Real Data Source Not Connected',
@@ -12,6 +19,7 @@ const realDataSourceConfig = {
     shopeeProductAffiliateApi: { label: 'Shopee product/affiliate API', status: 'Not connected', endpoint: '' },
     lazadaProductAffiliateApi: { label: 'Lazada product/affiliate API', status: 'Not connected', endpoint: '' },
     externalJsonDatabase: { label: 'External JSON database', status: 'Optional user-provided JSON feed', endpoint: '' },
+    supabaseProductWarehouse: { label: 'Supabase Product Warehouse', status: 'Configured only when USE_SUPABASE is true', endpoint: '' },
   },
 };
 
@@ -26,6 +34,9 @@ let externalSourceStatus = 'idle';
 let externalSourceError = '';
 let externalFetchTimer;
 let externalFetchRequestId = 0;
+let supabaseProducts = [];
+let supabaseSourceStatus = 'idle';
+let supabaseSourceError = '';
 let selectedProducts = readSelectedProducts();
 
 function platformImage(platform, title = 'Product Preview') {
@@ -131,6 +142,10 @@ function createLocalPreviewConnector(platform, providerTodo) {
 }
 
 function searchProducts(platform, target, keyword) {
+  if (discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready') {
+    return filterProducts(supabaseProducts, platform, target, keyword);
+  }
+
   if (discoveryDataSource === 'external' && externalSourceStatus === 'ready') {
     return filterProducts(externalProducts, platform, target, keyword);
   }
@@ -174,6 +189,96 @@ function filterProducts(products, platform, target, keyword, platformAlreadyScop
 
     return matchesPlatform && matchesTarget && matchesKeyword;
   });
+}
+
+
+function isSupabaseConfigured() {
+  return Boolean(
+    runtimeDataSourceConfig.USE_SUPABASE
+    && runtimeDataSourceConfig.SUPABASE_URL
+    && runtimeDataSourceConfig.SUPABASE_ANON_KEY
+    && !runtimeDataSourceConfig.SUPABASE_URL.includes('YOUR_PROJECT_ID')
+    && runtimeDataSourceConfig.SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY',
+  );
+}
+
+async function loadDataSourceConfig() {
+  try {
+    const configModuleUrl = new URL('dataSourceConfig.js', appScriptUrl).href;
+    const configModule = await import(configModuleUrl);
+    runtimeDataSourceConfig = {
+      SUPABASE_URL: configModule.SUPABASE_URL || defaultDataSourceConfig.SUPABASE_URL,
+      SUPABASE_ANON_KEY: configModule.SUPABASE_ANON_KEY || defaultDataSourceConfig.SUPABASE_ANON_KEY,
+      USE_SUPABASE: Boolean(configModule.USE_SUPABASE),
+    };
+  } catch (error) {
+    runtimeDataSourceConfig = { ...defaultDataSourceConfig };
+    supabaseSourceError = `Supabase config could not be loaded: ${error.message}. Falling back to Local Preview Dataset.`;
+  }
+
+  if (runtimeDataSourceConfig.USE_SUPABASE) {
+    discoveryDataSource = 'supabase';
+    await fetchProductsFromSupabase();
+  } else {
+    render();
+  }
+}
+
+function normalizeSupabaseProduct(row) {
+  return normalizeProduct({
+    id: row.id,
+    platform: row.platform,
+    title: row.title,
+    image: row.image_url,
+    price: row.price,
+    commission: row.commission,
+    totalSales: row.total_sales,
+    targetTags: row.target_tags || [],
+    sourceUrl: row.source_url,
+    rawSource: {
+      ...row,
+      provider: 'Supabase Product Warehouse',
+    },
+    supported: true,
+  });
+}
+
+async function fetchProductsFromSupabase() {
+  supabaseSourceStatus = 'loading';
+  supabaseSourceError = '';
+  render();
+
+  try {
+    if (!isSupabaseConfigured()) {
+      throw new Error('SUPABASE_URL or SUPABASE_ANON_KEY is missing, placeholder, or USE_SUPABASE is false');
+    }
+
+    const baseUrl = runtimeDataSourceConfig.SUPABASE_URL.replace(/\/$/, '');
+    const selectColumns = 'id,platform,title,image_url,price,commission,total_sales,target_tags,source_url,data_source,fetched_at,created_at,updated_at';
+    const requestUrl = `${baseUrl}/rest/v1/products?select=${encodeURIComponent(selectColumns)}&order=fetched_at.desc.nullslast,created_at.desc`;
+    const response = await fetch(requestUrl, {
+      headers: {
+        apikey: runtimeDataSourceConfig.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${runtimeDataSourceConfig.SUPABASE_ANON_KEY}`,
+        Accept: 'application/json',
+      },
+    });
+
+    if (!response.ok) throw new Error(`Supabase HTTP ${response.status}`);
+
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error('Supabase products response was not an array');
+
+    supabaseProducts = rows.map(normalizeSupabaseProduct);
+    supabaseSourceStatus = 'ready';
+    supabaseSourceError = '';
+  } catch (error) {
+    supabaseProducts = [];
+    supabaseSourceStatus = 'error';
+    supabaseSourceError = `Supabase Product Warehouse failed: ${error.message}. Falling back to Local Preview Dataset.`;
+  }
+
+  render();
 }
 
 function getExternalProductArray(payload) {
@@ -463,6 +568,7 @@ function renderDiscoveryFilters() {
         <span>Data Source</span>
         <select id="data-source-filter">
           <option value="local" ${discoveryDataSource === 'local' ? 'selected' : ''}>Local Preview Dataset</option>
+          <option value="supabase" ${discoveryDataSource === 'supabase' ? 'selected' : ''}>Supabase Product Warehouse</option>
           <option value="external" ${discoveryDataSource === 'external' ? 'selected' : ''}>External JSON Database</option>
         </select>
       </label>
@@ -596,14 +702,27 @@ function renderRealDataSourceSetupPanel() {
 function renderDataSourceStatusPanel() {
   if (activeTab !== 'auto') return '';
 
-  const activeSourceLabel = discoveryDataSource === 'external' && externalSourceStatus === 'ready'
-    ? `External JSON Database (${externalProducts.length} products loaded)`
-    : 'Local Preview Dataset';
-  const sourceMessage = discoveryDataSource === 'external'
-    ? 'External JSON Database fetches product records from the provided JSON URL only. Marketplace APIs are still not connected and the frontend does not scrape marketplace pages.'
-    : 'TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.';
-  const errorMessage = externalSourceError ? `<p class="source-error">${escapeHtml(externalSourceError)}</p>` : '';
-  const loadingMessage = externalSourceStatus === 'loading' ? '<p class="source-loading">Loading External JSON Database…</p>' : '';
+  const activeSourceLabel = discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready'
+    ? `Supabase Product Warehouse (${supabaseProducts.length} products loaded)`
+    : discoveryDataSource === 'external' && externalSourceStatus === 'ready'
+      ? `External JSON Database (${externalProducts.length} products loaded)`
+      : 'Local Preview Dataset';
+  const sourceMessage = discoveryDataSource === 'supabase'
+    ? 'Supabase Product Warehouse reads normalized rows from the products table when USE_SUPABASE is true and public anon config is provided. Local Preview Dataset is used as fallback.'
+    : discoveryDataSource === 'external'
+      ? 'External JSON Database fetches product records from the provided JSON URL only. Marketplace APIs are still not connected and the frontend does not scrape marketplace pages.'
+      : 'TikTok, Shopee and Lazada are using local mock records from src/app.js. Real platform APIs are not connected.';
+  const errorMessage = [supabaseSourceError, externalSourceError]
+    .filter(Boolean)
+    .map((message) => `<p class="source-error">${escapeHtml(message)}</p>`)
+    .join('');
+  const loadingMessage = [
+    supabaseSourceStatus === 'loading' ? 'Loading Supabase Product Warehouse…' : '',
+    externalSourceStatus === 'loading' ? 'Loading External JSON Database…' : '',
+  ]
+    .filter(Boolean)
+    .map((message) => `<p class="source-loading">${message}</p>`)
+    .join('');
 
   const rows = [
     ['TikTok', 'src/app.js local dataset', 'Not connected', 'TikTok Shop / Kalodata / backend API'],
@@ -686,7 +805,7 @@ function renderDiscoveryResults() {
         <div>
           <p class="eyebrow">${activeTab === 'auto' ? 'Local Product Dataset Preview' : 'Manual Product Import'}</p>
           <h2>${heading}</h2>
-          ${activeTab === 'auto' ? `<p class="source-label">Data Source: ${discoveryDataSource === 'external' && externalSourceStatus === 'ready' ? 'External JSON Database' : 'Local Preview Dataset'}</p>` : ''}
+          ${activeTab === 'auto' ? `<p class="source-label">Data Source: ${discoveryDataSource === 'supabase' && supabaseSourceStatus === 'ready' ? 'Supabase Product Warehouse' : discoveryDataSource === 'external' && externalSourceStatus === 'ready' ? 'External JSON Database' : 'Local Preview Dataset'}</p>` : ''}
         </div>
         <span>${products.length} products</span>
       </div>
@@ -808,10 +927,14 @@ function attachProductCommandCenterEvents() {
   document.querySelector('#data-source-filter')?.addEventListener('change', (event) => {
     discoveryDataSource = event.target.value;
     externalSourceError = '';
+    supabaseSourceError = '';
     if (discoveryDataSource === 'external') {
       scheduleExternalDatabaseFetch();
+    } else if (discoveryDataSource === 'supabase') {
+      fetchProductsFromSupabase();
     } else {
       externalSourceStatus = 'idle';
+      supabaseSourceStatus = 'idle';
       render();
     }
   });
@@ -915,3 +1038,4 @@ window.addEventListener('pageshow', () => {
 });
 
 render();
+loadDataSourceConfig();
