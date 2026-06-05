@@ -27,6 +27,8 @@ let externalFetchRequestId = 0;
 let supabaseProducts = [];
 let supabaseSourceStatus = 'idle';
 let supabaseSourceError = '';
+let supabaseConfigLoaded = false;
+let supabaseConfigError = '';
 let csvImportState = createCsvImportState();
 let selectedProducts = readSelectedProducts();
 
@@ -183,6 +185,14 @@ function filterProducts(products, platform, target, keyword, platformAlreadyScop
 }
 
 
+function getSupabaseUrlHost() {
+  try {
+    return new URL(runtimeDataSourceConfig.SUPABASE_URL).host;
+  } catch {
+    return runtimeDataSourceConfig.SUPABASE_URL || 'Not configured';
+  }
+}
+
 function isSupabaseConfigured() {
   return Boolean(
     runtimeDataSourceConfig.USE_SUPABASE
@@ -202,9 +212,17 @@ async function loadDataSourceConfig() {
       SUPABASE_ANON_KEY: configModule.SUPABASE_ANON_KEY || defaultDataSourceConfig.SUPABASE_ANON_KEY,
       USE_SUPABASE: Boolean(configModule.USE_SUPABASE),
     };
+    supabaseConfigLoaded = true;
+    supabaseConfigError = '';
   } catch (error) {
     runtimeDataSourceConfig = { ...defaultDataSourceConfig };
-    supabaseSourceError = `Supabase config could not be loaded: ${error.message}. Falling back to Local Preview Dataset.`;
+    supabaseConfigLoaded = false;
+    supabaseConfigError = `Supabase config could not be loaded: ${error.message}`;
+    supabaseSourceError = `${supabaseConfigError}. Falling back to Local Preview Dataset.`;
+    console.error('Supabase config load failed', {
+      url: runtimeDataSourceConfig.SUPABASE_URL,
+      error: error.message,
+    });
   }
 
   if (runtimeDataSourceConfig.USE_SUPABASE) {
@@ -273,6 +291,10 @@ async function fetchProductsFromSupabase() {
     supabaseProducts = [];
     supabaseSourceStatus = 'error';
     supabaseSourceError = `Supabase Product Warehouse failed: ${error.message}. Falling back to Local Preview Dataset.`;
+    console.error('Supabase fetch failed', {
+      url: runtimeDataSourceConfig.SUPABASE_URL,
+      error: error.message,
+    });
   }
 
   render();
@@ -1036,6 +1058,8 @@ function renderDataSourceStatusPanel() {
     : '';
   const importBusy = csvImportState.status === 'parsing' || csvImportState.status === 'importing';
   const canImportPreview = isSupabaseConfigured() && csvImportState.validRows > 0 && !importBusy;
+  const diagnosticError = supabaseConfigError || supabaseSourceError || 'None';
+  const diagnosticLine = `Config loaded: ${supabaseConfigLoaded ? 'Yes' : 'No'} · Supabase URL host: ${getSupabaseUrlHost()} · Error: ${diagnosticError}`;
 
   return `
     <section class="data-source-panel compact-data-sources" aria-label="Data Sources">
@@ -1047,6 +1071,7 @@ function renderDataSourceStatusPanel() {
           <input accept=".csv,text/csv" class="visually-hidden" id="csv-product-file" type="file" />
         </div>
       </div>
+      <p class="source-label">${escapeHtml(diagnosticLine)}</p>
       ${loadingMessage}
       ${errorMessage}
       <div class="compact-source-grid">
@@ -1356,5 +1381,8 @@ window.addEventListener('pageshow', () => {
   render();
 });
 
-render();
-loadDataSourceConfig();
+if (window.location.pathname.replace(/\/$/, '').endsWith('/content-generator')) {
+  render();
+} else {
+  loadDataSourceConfig();
+}
