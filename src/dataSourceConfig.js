@@ -1,7 +1,6 @@
-// Supabase Product Warehouse config placeholder.
-// Only the public anon key belongs here. Never paste a service-role key into frontend code.
-// Set USE_SUPABASE to true only after supabase/schema.sql has been applied and RLS/policies are ready.
+// Supabase Product Warehouse config.
+// Only the public publishable anon key belongs here. Never paste a service-role key into frontend code.
 
-export const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-export const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
-export const USE_SUPABASE = false;
+export const SUPABASE_URL = 'https://mgtosxxdvfvsthjqdobt.supabase.co';
+export const SUPABASE_ANON_KEY = 'sb_publishable_r8Nuc-g2FySzsNCyfIm4ZQ_eUgGUW45';
+export const USE_SUPABASE = true;
