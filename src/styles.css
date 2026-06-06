@@ -2507,6 +2507,16 @@ h1 {
   background: rgba(2, 6, 23, 0.28);
 }
 
+.creative-step-flow {
+  position: relative;
+  gap: 7px;
+  margin-bottom: 10px;
+  padding: 10px;
+  background:
+    linear-gradient(90deg, rgba(157, 245, 229, 0.08), rgba(177, 139, 255, 0.06)),
+    rgba(2, 6, 23, 0.2);
+}
+
 .concept-decision-bar {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
@@ -2518,28 +2528,46 @@ h1 {
   line-height: 1.45;
 }
 
+.creative-step-flow p {
+  margin: 0;
+}
+
 .concept-decision-bar strong,
 .creative-step-flow strong {
   color: var(--nf-text-main);
 }
 
 .step-flow-list {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 7px;
+}
+
+.step-flow-list::before {
+  position: absolute;
+  top: 50%;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(157, 245, 229, 0.2), rgba(177, 139, 255, 0.18));
+  content: '';
+  pointer-events: none;
+  transform: translateY(-50%);
 }
 
 .step-flow-list button,
 .concept-state-badge {
+  position: relative;
+  z-index: 1;
   border: 1px solid rgba(226, 232, 240, 0.12);
   border-radius: 999px;
-  padding: 6px 9px;
-  background: rgba(15, 23, 42, 0.48);
+  padding: 5px 8px;
+  background: rgba(15, 23, 42, 0.88);
   color: var(--nf-text-muted);
   font-size: 0.68rem;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 850;
+  letter-spacing: 0.02em;
   cursor: pointer;
 }
 
@@ -2548,6 +2576,16 @@ h1 {
   border-color: rgba(157, 245, 229, 0.3);
   color: var(--nf-text-main);
   outline: none;
+}
+
+.step-flow-list button.current {
+  border-color: rgba(177, 139, 255, 0.42);
+  background: rgba(177, 139, 255, 0.14);
+  color: var(--nf-text-main);
+}
+
+.step-flow-list button.pending {
+  opacity: 0.78;
 }
 
 .step-flow-list button.complete,

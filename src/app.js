@@ -3010,21 +3010,25 @@ function renderCreativeStepFlow(savedProducts = []) {
             ? 'Prepare or update Prompt Plan Builder'
             : 'Review Legacy Image Workspace';
   const steps = [
-    { label: 'Goal', target: '#creative-inputs-panel', complete: hasProducts },
-    { label: 'Product', target: '#product-context-bar', complete: hasProducts },
-    { label: 'Character', target: '#character-engine-section', complete: hasProducts },
-    { label: 'Concept', target: '#concept-board', complete: conceptComplete },
-    { label: 'Storyboard', target: '#storyboard-system', complete: storyboardComplete },
-    { label: 'Prompt Plan', target: '#ai-director-panel', complete: promptPlanComplete },
-    { label: 'Generate', target: '#legacy-image-workspace', complete: promptPlanComplete },
+    { label: '1 Goal', target: '#creative-inputs-panel', complete: hasProducts },
+    { label: '2 Product', target: '#product-context-bar', complete: hasProducts },
+    { label: '3 Character', target: '#character-engine-section', complete: hasProducts },
+    { label: '4 Concept', target: '#concept-board', complete: conceptComplete },
+    { label: '5 Storyboard', target: '#storyboard-system', complete: storyboardComplete },
+    { label: '6 Prompt Plan', target: '#ai-director-panel', complete: promptPlanComplete },
+    { label: '7 Generate', target: '#legacy-image-workspace', complete: promptPlanComplete },
   ];
+  const activeStepIndex = Math.max(0, steps.findIndex((step) => !step.complete));
 
   return `
     <div class="creative-step-flow" aria-label="Step Flow">
       <div class="step-flow-list">
-        ${steps.map((step) => `
-          <button class="${step.complete ? 'complete' : ''}" data-step-target="${escapeHtml(step.target)}" type="button">${escapeHtml(step.label)}</button>
-        `).join('')}
+        ${steps.map((step, index) => {
+          const stepState = step.complete ? 'complete' : index === activeStepIndex ? 'current' : 'pending';
+          return `
+            <button class="${stepState}" data-step-target="${escapeHtml(step.target)}" type="button">${escapeHtml(step.label)}</button>
+          `;
+        }).join('')}
       </div>
       <p>Next Step: ${escapeHtml(nextStep)}</p>
     </div>

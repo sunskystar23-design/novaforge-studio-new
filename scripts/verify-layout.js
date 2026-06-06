@@ -103,7 +103,8 @@ if (!/function renderContentGenerator\s*\(/.test(appSource)) throw new Error('fu
 if (!appSource.includes('renderProductContextBar(savedProducts)')) throw new Error('renderContentGenerator must call renderProductContextBar(savedProducts)');
 if (!appSource.includes('renderCreativeStudioShell(savedProducts)')) throw new Error('renderContentGenerator must call renderCreativeStudioShell(savedProducts)');
 if (!appSource.includes('renderLegacyImageWorkspace(savedProducts)')) throw new Error('renderContentGenerator must call renderLegacyImageWorkspace(savedProducts)');
-if (!/renderCreativeStepFlow.*renderCreativeCanvasPanel/.test(appSource)) throw new Error('renderCreativeStepFlow must be placed inside renderCreativeCanvasPanel');
+if (/renderCreativeStudioShell[\s\S]*renderCreativeStepFlow[\s\S]*creative-studio-grid/.test(appSource)) throw new Error('renderCreativeStepFlow must not be called in renderCreativeStudioShell before creative-studio-grid');
+if (!/renderCreativeCanvasPanel[\s\S]*renderCreativeStepFlow/.test(appSource)) throw new Error('renderCreativeStepFlow must be placed inside renderCreativeCanvasPanel');
 ['product-context-bar', 'pcb-left', 'pcb-manage-btn', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing updated Content Generator marker: ${text}`);
 });
@@ -120,7 +121,7 @@ if (!/renderCreativeStepFlow.*renderCreativeCanvasPanel/.test(appSource)) throw 
 ].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing layout marker: ${text}`);
 });
-['Goal', 'Product', 'Character', 'Concept', 'Storyboard', 'Prompt Plan', 'Generate'].forEach((label) => {
+['1 Goal', '2 Product', '3 Character', '4 Concept', '5 Storyboard', '6 Prompt Plan', '7 Generate'].forEach((label) => {
   if (!html.includes(`>${label}</button>`)) throw new Error(`Missing Step Flow button label: ${label}`);
 });
 if (!html.includes('Storyboard based on: Luxury Documentary')) throw new Error('Storyboard selected concept reference missing');
