@@ -730,6 +730,7 @@ function createImageWorkspaceState(overrides = {}) {
     prompts: [],
     jobs: [],
     images: [],
+    notice: '',
     ...overrides,
   };
 }
@@ -741,6 +742,7 @@ function readImageWorkspaceState() {
       prompts: Array.isArray(savedState.prompts) ? savedState.prompts : [],
       jobs: Array.isArray(savedState.jobs) ? savedState.jobs : [],
       images: Array.isArray(savedState.images) ? savedState.images : [],
+      notice: savedState.notice || '',
     });
   } catch {
     return createImageWorkspaceState();
@@ -783,25 +785,43 @@ function createImagePrompt(product, categoryConfig, index) {
 }
 
 function generateImagePromptsForProduct(product) {
-  const productKey = promptProductKey(product);
-  const existingOtherPrompts = imageWorkspaceState.prompts.filter((prompt) => prompt.productId !== productKey);
-  const generatedPrompts = imagePromptCategories.map((categoryConfig, index) => createImagePrompt(product, categoryConfig, index));
+  const normalizedProduct = normalizeProduct(product);
+  const productKey = promptProductKey(normalizedProduct);
+  const existingPrompts = imageWorkspaceState.prompts.filter((prompt) => prompt.productId === productKey);
+
+  if (existingPrompts.length > 0) {
+    imageWorkspaceState = createImageWorkspaceState({
+      ...imageWorkspaceState,
+      notice: `Prompts already exist for ${normalizedProduct.title}. Select prompts below or clear the workspace before regenerating.`,
+    });
+    saveImageWorkspaceState();
+    if (typeof window !== 'undefined') window.location.hash = 'generated-image-prompts';
+    render();
+    return;
+  }
+
+  const generatedPrompts = imagePromptCategories.map((categoryConfig, index) => createImagePrompt(normalizedProduct, categoryConfig, index));
   imageWorkspaceState = createImageWorkspaceState({
     ...imageWorkspaceState,
-    prompts: [...existingOtherPrompts, ...generatedPrompts],
-    jobs: imageWorkspaceState.jobs.filter((job) => job.productId !== productKey),
-    images: imageWorkspaceState.images.filter((image) => image.productId !== productKey),
+    prompts: [...imageWorkspaceState.prompts, ...generatedPrompts],
+    notice: `Generated ${generatedPrompts.length} image prompts for ${normalizedProduct.title}. Mark prompts as selected, then use them for image jobs.`,
   });
   saveImageWorkspaceState();
   render();
 }
 
 function toggleImagePrompt(promptId) {
+  const nextPrompts = imageWorkspaceState.prompts.map((prompt) => (
+    prompt.id === promptId ? { ...prompt, selected: !prompt.selected } : prompt
+  ));
+  const selectedCount = nextPrompts.filter((prompt) => prompt.selected).length;
+
   imageWorkspaceState = createImageWorkspaceState({
     ...imageWorkspaceState,
-    prompts: imageWorkspaceState.prompts.map((prompt) => (
-      prompt.id === promptId ? { ...prompt, selected: !prompt.selected } : prompt
-    )),
+    prompts: nextPrompts,
+    notice: selectedCount > 0
+      ? `${selectedCount} prompt(s) selected. Click Use Selected Prompts for Images to create pending jobs.`
+      : 'No prompts selected yet.',
   });
   saveImageWorkspaceState();
   render();
@@ -829,6 +849,9 @@ function createImageJobsFromSelectedPrompts() {
   imageWorkspaceState = createImageWorkspaceState({
     ...imageWorkspaceState,
     jobs: [...imageWorkspaceState.jobs, ...newJobs],
+    notice: newJobs.length > 0
+      ? `Created ${newJobs.length} pending image job(s). Run the Image Queue to simulate generation.`
+      : 'Selected prompts already have image jobs in the queue.',
   });
   saveImageWorkspaceState();
   render();
@@ -851,6 +874,7 @@ function selectAllImageJobs() {
     jobs: imageWorkspaceState.jobs.map((job) => (
       job.status === 'pending' ? { ...job, status: 'selected' } : job
     )),
+    notice: 'All pending image jobs are selected and ready to run.',
   });
   saveImageWorkspaceState();
   render();
@@ -861,6 +885,7 @@ function removeImageJob(jobId) {
     ...imageWorkspaceState,
     jobs: imageWorkspaceState.jobs.filter((job) => job.jobId !== jobId),
     images: imageWorkspaceState.images.filter((image) => image.jobId !== jobId),
+    notice: 'Image job removed from the queue.',
   });
   saveImageWorkspaceState();
   render();
@@ -872,6 +897,7 @@ function removeCompletedImageJobs() {
     ...imageWorkspaceState,
     jobs: imageWorkspaceState.jobs.filter((job) => job.status !== 'completed'),
     images: imageWorkspaceState.images.filter((image) => !completedJobIds.has(image.jobId)),
+    notice: 'Completed image jobs removed from the queue.',
   });
   saveImageWorkspaceState();
   render();
@@ -882,6 +908,7 @@ function clearImageJobsQueue() {
     ...imageWorkspaceState,
     jobs: [],
     images: [],
+    notice: 'Image Jobs Queue cleared.',
   });
   saveImageWorkspaceState();
   render();
@@ -912,6 +939,7 @@ function runImageQueue() {
     jobs: imageWorkspaceState.jobs.map((job) => (
       runnableJobIds.includes(job.jobId) ? { ...job, status: 'generating' } : job
     )),
+    notice: `Running ${runnableJobIds.length} image job(s).`,
   });
   saveImageWorkspaceState();
   render();
@@ -929,6 +957,7 @@ function runImageQueue() {
         completedJobIds.has(job.jobId) ? { ...job, status: 'completed' } : job
       )),
       images: [...otherImages, ...completedJobs.map(createGalleryImageFromJob)],
+      notice: `Completed ${completedJobs.length} image job(s) and added placeholder gallery images.`,
     });
     saveImageWorkspaceState();
     render();
@@ -1525,6 +1554,9 @@ function renderImageCreationWorkspace(savedProducts) {
   const galleryEmptyState = imageWorkspaceState.images.length === 0
     ? '<p class="empty-state">Run completed image jobs to create placeholder image cards.</p>'
     : '';
+  const workspaceNotice = imageWorkspaceState.notice
+    ? `<p class="workspace-notice">${escapeHtml(imageWorkspaceState.notice)}</p>`
+    : '';
 
   return `
     <section class="image-workspace-section">
@@ -1536,6 +1568,7 @@ function renderImageCreationWorkspace(savedProducts) {
         </div>
         <span>${savedProducts.length} selected product(s)</span>
       </div>
+      ${workspaceNotice}
       <div class="image-creation-product-list">
         ${savedProducts.length === 0 ? '<p class="empty-state">No selected products available for image prompts.</p>' : savedProducts.map((product) => `
           <article class="image-creation-product">
@@ -1551,7 +1584,7 @@ function renderImageCreationWorkspace(savedProducts) {
       </div>
     </section>
 
-    <section class="image-workspace-section">
+    <section class="image-workspace-section" id="generated-image-prompts">
       <div class="section-heading">
         <div>
           <p class="eyebrow">Generated Image Prompts</p>

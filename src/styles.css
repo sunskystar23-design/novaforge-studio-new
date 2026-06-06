@@ -956,3 +956,13 @@ h1 {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+.workspace-notice {
+  border: 1px solid rgba(59, 76, 255, 0.18);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #eef3ff;
+  color: #3b4cff;
+  font-size: 0.88rem;
+  font-weight: 850;
+}
