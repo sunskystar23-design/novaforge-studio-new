@@ -50,12 +50,41 @@ assert.doesNotMatch(app, /NOVAFORGE CREATIVE STUDIO V2/);
 assert.doesNotMatch(app, /SECTION 1/);
 assert.doesNotMatch(app, /creative-workflow-nav/);
 assert.doesNotMatch(app, /studio-nav/);
+assert.doesNotMatch(app, /isNewLayout/);
+assert.doesNotMatch(app, /toggleLayout/);
+assert.doesNotMatch(app, /Product Context Bar.*heading/);
+assert.doesNotMatch(app, /product-card-grid.*renderProductContextBar/);
 assert.doesNotMatch(rendered, /Selected Products Loaded/);
 assert.doesNotMatch(rendered, /AI Creative Operating System/);
 assert.doesNotMatch(rendered, /NOVAFORGE CREATIVE STUDIO V2/);
 assert.doesNotMatch(rendered, /SECTION 1/);
 assert.doesNotMatch(rendered, /creative-workflow-nav/);
 assert.doesNotMatch(rendered, /studio-nav/);
+assert.doesNotMatch(rendered, /Back to Product Command Center/);
+assert.doesNotMatch(rendered, /href=\"\/novaforge-studio-new\/\"/);
+assert.doesNotMatch(rendered, /<h1>Product Context Bar<\/h1>/);
+assert.doesNotMatch(rendered, /loaded-products-grid/);
+
+function extractFunctionBody(source, functionName) {
+  const start = source.indexOf(`function ${functionName}`);
+  assert.notStrictEqual(start, -1, `${functionName} must exist`);
+  const nextFunction = source.indexOf('\nfunction ', start + 1);
+  return source.slice(start, nextFunction === -1 ? source.length : nextFunction);
+}
+
+const productContextBody = extractFunctionBody(app, 'renderProductContextBar');
+const contentGeneratorBody = extractFunctionBody(app, 'renderContentGenerator');
+assert.doesNotMatch(productContextBody, /href=\"\/novaforge-studio-new\/\"/);
+assert.doesNotMatch(contentGeneratorBody, /href=\"\/novaforge-studio-new\/\"/);
+assert.match(app, /product-context-bar/);
+assert.match(app, /pcb-primary/);
+assert.match(app, /pcb-manage-btn/);
+assert.match(app, /renderCreativeStepFlow.*renderCreativeCanvasPanel/);
+assert.match(rendered, /Manage Products/);
+assert.match(rendered, /class=\"pcb-manage-btn\"/);
+assert.match(app, /Product selection is managed in Product Command Center\. Current mission keeps existing selection locked\./);
+assert.match(app, /window\.location\.href = '\/novaforge-studio-new\/content-generator\/';/);
+assert.match(vm.runInContext('renderProductCommandCenter()', context), /Product Command Center/);
 
 assert.match(app, /function renderContentGenerator/);
 assert.match(app, /renderProductContextBar\(savedProducts\)/);
