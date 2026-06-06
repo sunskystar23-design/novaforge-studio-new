@@ -202,6 +202,9 @@ let selectedCreativeTags = [];
 let creativeSearchNotice = '';
 let projectGoal = 'Sell Product';
 let selectedConceptId = '';
+let generatedStoryboardScenes = [];
+let storyboardVariation = 0;
+let storyboardNotice = '';
 
 function platformImage(platform, title = 'Product Preview') {
   const colors = {
@@ -1825,6 +1828,9 @@ function expandCreativeSearchIdeas() {
   expandedKeywords = expandCreativeKeywords(creativeSearchQuery);
   selectedCreativeTags = selectedCreativeTags.filter((selectedTag) => expandedKeywords.includes(selectedTag));
   selectedConceptId = '';
+  generatedStoryboardScenes = [];
+  storyboardVariation = 0;
+  storyboardNotice = '';
   creativeSearchNotice = creativeSearchQuery.trim()
     ? `Expanded ${expandedKeywords.length} creative direction tag(s) from your search.`
     : 'No search text yet, so NOVAFORGE suggested a balanced creative starter set.';
@@ -1839,6 +1845,9 @@ function toggleCreativeTag(tag) {
   }
 
   selectedConceptId = '';
+  generatedStoryboardScenes = [];
+  storyboardVariation = 0;
+  storyboardNotice = '';
   creativeSearchNotice = selectedCreativeTags.length > 0
     ? `${selectedCreativeTags.length} creative tag(s) selected for AI Director guidance.`
     : 'All creative tags deselected. Select tags to shape the mock direction.';
@@ -1864,11 +1873,15 @@ function getSelectedTagsSummary() {
 function getCreativeDirectorSections(activeConcept) {
   if (activeConcept) {
     const tagSummary = getSelectedTagsSummary();
+    const storyboardStructure = getStoryboardStructureTitle(activeConcept);
+    const storyboardReady = generatedStoryboardScenes.length > 0;
 
     return [
       {
         title: 'Recommended Direction',
-        body: `Selected concept: ${activeConcept.title}. Recommended next step: review storyboard direction and confirm the first scene hook.`,
+        body: storyboardReady
+          ? `${activeConcept.title} uses a ${storyboardStructure} narrative structure because it matches the selected goal, tags, and product context.`
+          : `Selected concept: ${activeConcept.title}. Recommended next step: generate storyboard direction and confirm the first scene hook.`,
       },
       {
         title: 'Alternative Concepts',
@@ -2039,7 +2052,136 @@ function getActiveConcept(savedProducts = []) {
 
 function selectCreativeConcept(conceptId) {
   selectedConceptId = conceptId;
+  generatedStoryboardScenes = [];
+  storyboardVariation = 0;
+  storyboardNotice = 'Concept selected. Generate a storyboard to simulate the AI Director workflow.';
   creativeSearchNotice = 'Concept selected. Creative Blueprint and AI Director guidance updated.';
+  render();
+}
+
+
+function getStoryboardStructureTitle(concept) {
+  if (!concept) return 'goal → proof → direction → next step';
+  if (concept.id === 'luxury-documentary') return 'reveal → story → experience → hero shot';
+  if (concept.id === 'asmr-product-film') return 'texture → interaction → slow detail → ambient ending';
+  if (concept.id === 'podcast-story-concept') return 'introduction → story build-up → key insight → closing thought';
+  if (concept.id === 'viral-short-form-hook') return 'hook → problem → solution → CTA';
+  return 'setup → proof → transformation → closing frame';
+}
+
+function getStoryboardSceneTemplates(concept) {
+  if (concept?.id === 'luxury-documentary') {
+    return [
+      { title: 'Product Reveal', objective: 'Make the product feel premium before explaining it.' },
+      { title: 'Brand Story', objective: 'Connect the product to a refined human motivation.' },
+      { title: 'Product Experience', objective: 'Show tactile proof and emotional use context.' },
+      { title: 'Closing Hero Shot', objective: 'End with a confident, memorable product image.' },
+    ];
+  }
+
+  if (concept?.id === 'asmr-product-film') {
+    return [
+      { title: 'Texture Close-Up', objective: 'Open with sensory curiosity and product texture.' },
+      { title: 'Product Interaction', objective: 'Let hands, sound, and pace show how the product feels.' },
+      { title: 'Slow Motion Detail', objective: 'Highlight one feature through slow tactile detail.' },
+      { title: 'Ambient Ending', objective: 'Leave the viewer with calm desire and product memory.' },
+    ];
+  }
+
+  if (concept?.id === 'podcast-story-concept') {
+    return [
+      { title: 'Introduction', objective: 'Frame the topic and why the product belongs in the story.' },
+      { title: 'Story Build-Up', objective: 'Build context through a human problem or conversation.' },
+      { title: 'Key Insight', objective: 'Reveal the product benefit as the narrative insight.' },
+      { title: 'Closing Thought', objective: 'End with a memorable takeaway and soft next step.' },
+    ];
+  }
+
+  if (concept?.id === 'viral-short-form-hook') {
+    return [
+      { title: 'Hook', objective: 'Stop the scroll with one clear product tension.' },
+      { title: 'Problem', objective: 'Show the pain point quickly and visually.' },
+      { title: 'Solution', objective: 'Prove the product solves the problem in one beat.' },
+      { title: 'CTA', objective: 'Close with a fast action cue and product hero.' },
+    ];
+  }
+
+  return [
+    { title: 'Opening Mood', objective: 'Establish the product world and emotional direction.' },
+    { title: 'Need or Tension', objective: 'Show the viewer why the product matters.' },
+    { title: 'Proof Moment', objective: 'Make the product value visible without over-explaining.' },
+    { title: 'Closing Frame', objective: 'Resolve the story with a clear visual memory.' },
+  ];
+}
+
+function getStoryboardVariationDetails(index, variation) {
+  const cameraSets = [
+    ['Slow macro push-in', 'Elegant medium tracking shot', 'Detail insert sequence', 'Locked hero frame'],
+    ['Soft overhead drift', 'Handheld creator close-up', 'Side-lit detail move', 'Low angle final hero'],
+  ];
+  const motionSets = [
+    ['Gentle reveal', 'Measured story movement', 'Rhythmic detail pacing', 'Subtle product settle'],
+    ['Floating transition', 'Natural hand movement', 'Slow motion accent', 'Soft light sweep'],
+  ];
+  const audioSets = [
+    ['Low room tone', 'Warm narrative bed', 'Tactile product foley', 'Elegant resolve'],
+    ['Soft ambient pad', 'Close voice texture', 'Detailed sound accents', 'Minimal closing note'],
+  ];
+  const durationSets = [
+    ['0:00–0:04', '0:04–0:10', '0:10–0:18', '0:18–0:24'],
+    ['0:00–0:03', '0:03–0:09', '0:09–0:16', '0:16–0:22'],
+  ];
+  const variationIndex = variation % 2;
+
+  return {
+    duration: durationSets[variationIndex][index],
+    camera: cameraSets[variationIndex][index],
+    motion: motionSets[variationIndex][index],
+    audio: audioSets[variationIndex][index],
+  };
+}
+
+function generateMockStoryboard({ selectedConcept, selectedCreativeTags: tags = [], selectedProducts: products = [], projectGoal: goal = 'Sell Product', variation = 0 } = {}) {
+  const normalizedProducts = products.map((product) => normalizeProduct(product));
+  const productTitle = normalizedProducts[0]?.title || 'selected product';
+  const concept = selectedConcept || createMockConcepts({ selectedProducts: normalizedProducts, selectedCreativeTags: tags, creativeSearchQuery, projectGoal: goal })[0];
+  const tagContext = tags.length > 0 ? tags.join(', ') : 'cinematic product direction';
+
+  return getStoryboardSceneTemplates(concept).map((scene, index) => {
+    const variationDetails = getStoryboardVariationDetails(index, variation);
+
+    return {
+      id: `${concept.id}-scene-${index + 1}-v${variation + 1}`,
+      title: scene.title,
+      description: `${scene.title} for ${productTitle}, shaped by ${concept.title} and ${tagContext}.`,
+      duration: variationDetails.duration,
+      camera: variationDetails.camera,
+      motion: variationDetails.motion,
+      audio: variationDetails.audio,
+      objective: scene.objective,
+    };
+  });
+}
+
+function getStoryboardEstimatedDuration(scenes = generatedStoryboardScenes) {
+  return scenes.length > 0 ? scenes[scenes.length - 1].duration.split('–').pop() : 'Not generated yet';
+}
+
+function createStoryboardFromCurrentConcept(regenerate = false) {
+  const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
+  const activeConcept = getActiveConcept(savedProducts);
+  if (!activeConcept) return;
+
+  if (regenerate) storyboardVariation += 1;
+
+  generatedStoryboardScenes = generateMockStoryboard({
+    selectedConcept: activeConcept,
+    selectedCreativeTags,
+    selectedProducts: savedProducts,
+    projectGoal,
+    variation: storyboardVariation,
+  });
+  storyboardNotice = `${regenerate ? 'Regenerated' : 'Generated'} ${generatedStoryboardScenes.length} storyboard scene(s) for ${activeConcept.title}.`;
   render();
 }
 
@@ -2144,6 +2286,10 @@ function renderBlueprintPanel(savedProducts = []) {
     { label: 'Audio Direction', value: activeConcept.audioDirection },
     { label: 'Camera Direction', value: activeConcept.cameraDirection },
     { label: 'Story Angle', value: activeConcept.storyAngle },
+    { label: 'Scenes', value: generatedStoryboardScenes.length > 0 ? String(generatedStoryboardScenes.length) : 'Not generated yet' },
+    { label: 'Estimated Duration', value: getStoryboardEstimatedDuration() },
+    { label: 'Primary Emotion', value: activeConcept.emotion },
+    { label: 'Primary Style', value: activeConcept.style },
   ];
 
   return `
@@ -2165,19 +2311,23 @@ function renderBlueprintPanel(savedProducts = []) {
   `;
 }
 
-function renderStoryboardCard(scene) {
+function renderStoryboardCard(scene, index = 0) {
   return `
-    <article class="storyboard-card">
+    <article class="storyboard-card generated-storyboard-card">
       <div class="storyboard-card-header">
-        <h3>${escapeHtml(scene.scene)}</h3>
+        <div>
+          <span class="scene-number">Scene ${index + 1}</span>
+          <h3>${escapeHtml(scene.title)}</h3>
+        </div>
         <span>${escapeHtml(scene.duration)}</span>
       </div>
+      <p>${escapeHtml(scene.description)}</p>
       <dl>
         <div><dt>Camera</dt><dd>${escapeHtml(scene.camera)}</dd></div>
         <div><dt>Motion</dt><dd>${escapeHtml(scene.motion)}</dd></div>
         <div><dt>Audio</dt><dd>${escapeHtml(scene.audio)}</dd></div>
+        <div><dt>Objective</dt><dd>${escapeHtml(scene.objective)}</dd></div>
       </dl>
-      <p>${escapeHtml(scene.description)}</p>
     </article>
   `;
 }
@@ -2238,6 +2388,16 @@ function renderCreativeInputsPanel(savedProducts) {
 
 function renderCreativeCanvasPanel(savedProducts = []) {
   const concepts = getCreativeStudioConcepts(savedProducts);
+  const storyboardCards = generatedStoryboardScenes.length > 0
+    ? generatedStoryboardScenes.map(renderStoryboardCard).join('')
+    : '<p class="empty-state storyboard-empty-state">Select a concept, then generate a storyboard to replace this placeholder.</p>';
+  const storyboardActions = selectedConceptId
+    ? `<div class="storyboard-actions">
+        <button class="creative-expand-button" id="generate-storyboard" type="button">Generate Storyboard</button>
+        <button class="creative-expand-button secondary" ${generatedStoryboardScenes.length === 0 ? 'disabled' : ''} id="regenerate-storyboard" type="button">Regenerate Storyboard</button>
+      </div>`
+    : '<p class="creative-search-hint">Select a concept to unlock storyboard generation.</p>';
+  const notice = storyboardNotice ? `<p class="creative-search-notice">${escapeHtml(storyboardNotice)}</p>` : '';
 
   return `
     <section class="studio-canvas-panel" aria-label="Creative Canvas">
@@ -2253,12 +2413,17 @@ function renderCreativeCanvasPanel(savedProducts = []) {
       </section>
       ${renderBlueprintPanel(savedProducts)}
       <section class="studio-card storyboard-panel">
-        <div class="studio-section-heading">
-          <span class="studio-kicker">Storyboard Placeholder</span>
-          <h2>Storyboard System</h2>
+        <div class="studio-section-heading storyboard-heading">
+          <div>
+            <span class="studio-kicker">Storyboard Generator Mock</span>
+            <h2>Storyboard System</h2>
+            <p>Mock scenes are generated from project goal, creative tags, selected concept, and selected products.</p>
+          </div>
+          ${storyboardActions}
         </div>
+        ${notice}
         <div class="storyboard-grid">
-          ${creativeStoryboardScenes.map(renderStoryboardCard).join('')}
+          ${storyboardCards}
         </div>
       </section>
     </section>
@@ -2473,6 +2638,8 @@ function attachContentGeneratorEvents() {
   document.querySelector('#project-goal-selector')?.addEventListener('change', (event) => {
     projectGoal = event.target.value;
     selectedConceptId = '';
+    generatedStoryboardScenes = [];
+    storyboardNotice = '';
     creativeSearchNotice = 'Project goal updated. Concept Board and Creative Blueprint refreshed.';
     render();
   });
@@ -2486,6 +2653,9 @@ function attachContentGeneratorEvents() {
   document.querySelectorAll('[data-select-concept-id]').forEach((conceptButton) => {
     conceptButton.addEventListener('click', () => selectCreativeConcept(conceptButton.dataset.selectConceptId));
   });
+
+  document.querySelector('#generate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(false));
+  document.querySelector('#regenerate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(true));
 
   document.querySelectorAll('[data-creative-tag]').forEach((tagButton) => {
     tagButton.addEventListener('click', () => toggleCreativeTag(tagButton.dataset.creativeTag));
