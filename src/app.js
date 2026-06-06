@@ -3298,7 +3298,7 @@ function renderProductContextBar(savedProducts) {
         </div>
         <div class="product-context-bar-actions">
           <span class="studio-status-pill">${savedProducts.length} selected product(s)</span>
-          <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
+          <a class="back-link back-button" href="/novaforge-studio-new/">Change Products</a>
         </div>
       </div>
       ${emptyState}
@@ -3483,7 +3483,7 @@ function renderLegacyImageWorkspace(savedProducts) {
   `;
 }
 
-function renderContentGeneratorLanding() {
+function renderContentGenerator() {
   imageWorkspaceState = readImageWorkspaceState();
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
 
@@ -3495,6 +3495,10 @@ function renderContentGeneratorLanding() {
       <a class="back-link back-button studio-back-link" href="/novaforge-studio-new/">Back to Product Command Center</a>
     </main>
   `;
+}
+
+function renderContentGeneratorLanding() {
+  return renderContentGenerator();
 }
 
 

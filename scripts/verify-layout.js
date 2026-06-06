@@ -88,7 +88,7 @@ vm.runInContext(`
   favoriteConceptIds = ['luxury-documentary'];
   comparedConceptId = 'premium-social-campaign';
 `, context);
-let html = vm.runInContext('renderContentGeneratorLanding()', context);
+let html = vm.runInContext('renderContentGenerator()', context);
 const forbiddenLegacyStrings = [
   'Selected Products ' + 'Loaded',
   'AI Creative ' + 'Operating System',
@@ -99,9 +99,10 @@ forbiddenLegacyStrings.forEach((legacyString) => {
   if (html.includes(legacyString)) throw new Error(`Legacy Content Generator render string still visible: ${legacyString}`);
   if (appSource.includes(legacyString)) throw new Error(`Legacy Content Generator render string still exists in src/app.js: ${legacyString}`);
 });
-if (!appSource.includes('renderProductContextBar(savedProducts)')) throw new Error('renderContentGeneratorLanding must call renderProductContextBar(savedProducts)');
-if (!appSource.includes('renderCreativeStudioShell(savedProducts)')) throw new Error('renderContentGeneratorLanding must call renderCreativeStudioShell(savedProducts)');
-if (!appSource.includes('renderLegacyImageWorkspace(savedProducts)')) throw new Error('renderContentGeneratorLanding must call renderLegacyImageWorkspace(savedProducts)');
+if (!/function renderContentGenerator\s*\(/.test(appSource)) throw new Error('function renderContentGenerator must exist');
+if (!appSource.includes('renderProductContextBar(savedProducts)')) throw new Error('renderContentGenerator must call renderProductContextBar(savedProducts)');
+if (!appSource.includes('renderCreativeStudioShell(savedProducts)')) throw new Error('renderContentGenerator must call renderCreativeStudioShell(savedProducts)');
+if (!appSource.includes('renderLegacyImageWorkspace(savedProducts)')) throw new Error('renderContentGenerator must call renderLegacyImageWorkspace(savedProducts)');
 ['Product Context Bar', 'product-context-bar', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing updated Content Generator marker: ${text}`);
 });
