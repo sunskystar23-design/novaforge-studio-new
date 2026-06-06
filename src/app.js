@@ -89,6 +89,34 @@ const creativeReferenceTypes = [
   'Location Reference',
 ];
 
+
+const characterLibrary = [
+  { id: 'female_creator', name: 'Female Creator', description: 'Natural creator presence for UGC, lifestyle demos, and warm product storytelling.', defaultEmotion: 'Approachable confidence', recommendedContentFormats: ['UGC Review', 'Lifestyle Demo', 'Product Story'], recommendedStyles: ['Natural', 'Soft Premium', 'Creator-led'], recommendedRoles: ['Presenter', 'Reviewer', 'Lifestyle Character'] },
+  { id: 'male_creator', name: 'Male Creator', description: 'Clear creator voice for product demos, reviews, and practical explainers.', defaultEmotion: 'Confident clarity', recommendedContentFormats: ['Product Demo', 'Review', 'Educational Content'], recommendedStyles: ['Clean', 'Direct', 'Modern'], recommendedRoles: ['Presenter', 'Reviewer', 'Customer'] },
+  { id: 'couple', name: 'Couple', description: 'Two-person lifestyle dynamic for shared routines, reactions, and relationship-led storytelling.', defaultEmotion: 'Warm connection', recommendedContentFormats: ['Lifestyle Scene', 'Reaction Story', 'Social Campaign'], recommendedStyles: ['Warm', 'Lifestyle', 'Human'], recommendedRoles: ['Customer', 'Lifestyle Character', 'Brand Ambassador'] },
+  { id: 'family', name: 'Family', description: 'Family-centered story for trust, everyday use, and broad emotional relevance.', defaultEmotion: 'Warm trust', recommendedContentFormats: ['Family Lifestyle', 'Trust Story', 'Product Experience'], recommendedStyles: ['Warm', 'Lifestyle', 'Trust'], recommendedRoles: ['Customer', 'Lifestyle Character', 'Narrator'] },
+  { id: 'mother', name: 'Mother', description: 'Care-focused character for household, family, wellness, and practical product narratives.', defaultEmotion: 'Care and confidence', recommendedContentFormats: ['Lifestyle Demo', 'Family Story', 'Product Review'], recommendedStyles: ['Warm', 'Practical', 'Trust-led'], recommendedRoles: ['Presenter', 'Customer', 'Lifestyle Character'] },
+  { id: 'child', name: 'Child', description: 'Youthful supporting character for family-safe stories and playful lifestyle moments.', defaultEmotion: 'Curious fun', recommendedContentFormats: ['Family Scene', 'Playful Moment', 'Lifestyle Story'], recommendedStyles: ['Bright', 'Warm', 'Playful'], recommendedRoles: ['Lifestyle Character', 'Customer'] },
+  { id: 'student', name: 'Student', description: 'Young learner profile for budget, productivity, education, and daily routine content.', defaultEmotion: 'Curious ambition', recommendedContentFormats: ['Educational Content', 'Routine Video', 'Productivity Story'], recommendedStyles: ['Clean', 'Youthful', 'Practical'], recommendedRoles: ['Customer', 'Presenter', 'Narrator'] },
+  { id: 'office_worker', name: 'Office Worker', description: 'Professional everyday character for productivity, lifestyle, business, and desk-use products.', defaultEmotion: 'Focused calm', recommendedContentFormats: ['Office Routine', 'Product Demo', 'Problem Solution'], recommendedStyles: ['Minimal', 'Professional', 'Modern'], recommendedRoles: ['Customer', 'Presenter', 'Lifestyle Character'] },
+  { id: 'beauty_influencer', name: 'Beauty Influencer', description: 'Beauty-first creator for UGC, reviews, tutorials, and transformation-led product content.', defaultEmotion: 'Aspirational trust', recommendedContentFormats: ['UGC Review', 'Beauty Tutorial', 'Before/After'], recommendedStyles: ['Beauty Content', 'UGC', 'Soft Glam'], recommendedRoles: ['Reviewer', 'Presenter', 'Brand Ambassador'] },
+  { id: 'fashion_influencer', name: 'Fashion Influencer', description: 'Style-forward creator for editorial campaigns, styling tips, and fashion-led storytelling.', defaultEmotion: 'Stylish confidence', recommendedContentFormats: ['Fashion Campaign', 'Style Guide', 'Editorial Reel'], recommendedStyles: ['Editorial', 'Premium', 'Trend-led'], recommendedRoles: ['Presenter', 'Brand Ambassador', 'Lifestyle Character'] },
+  { id: 'tech_reviewer', name: 'Tech Reviewer', description: 'Analytical reviewer for demos, comparisons, feature highlights, and buying advice.', defaultEmotion: 'Informed confidence', recommendedContentFormats: ['Tech Review', 'Feature Breakdown', 'Comparison'], recommendedStyles: ['Clean', 'Educational', 'Precise'], recommendedRoles: ['Reviewer', 'Expert', 'Presenter'] },
+  { id: 'doctor', name: 'Doctor', description: 'Authority-led expert profile for trust, educational explanation, and careful product framing.', defaultEmotion: 'Trusted authority', recommendedContentFormats: ['Educational Content', 'Expert Explainer', 'Trust Story'], recommendedStyles: ['Clinical Clean', 'Authority', 'Trust'], recommendedRoles: ['Expert', 'Presenter', 'Narrator'] },
+  { id: 'fitness_coach', name: 'Fitness Coach', description: 'Performance-focused guide for transformation, routines, protein, wellness, and habit content.', defaultEmotion: 'Motivating energy', recommendedContentFormats: ['Fitness Routine', 'Transformation Story', 'Educational Demo'], recommendedStyles: ['Energetic', 'Lifestyle', 'Performance'], recommendedRoles: ['Expert', 'Presenter', 'Brand Ambassador'] },
+  { id: 'business_owner', name: 'Business Owner', description: 'Founder-like character for credibility, commercial use cases, and brand authority.', defaultEmotion: 'Strategic confidence', recommendedContentFormats: ['Brand Story', 'Founder Message', 'Commercial'], recommendedStyles: ['Premium', 'Professional', 'Trust-led'], recommendedRoles: ['Presenter', 'Expert', 'Narrator'] },
+  { id: 'expert', name: 'Expert', description: 'General specialist profile for education, credibility, and authority-based content.', defaultEmotion: 'Clear authority', recommendedContentFormats: ['Expert Explainer', 'Educational Content', 'Product Breakdown'], recommendedStyles: ['Clean', 'Trust', 'Instructional'], recommendedRoles: ['Expert', 'Presenter', 'Narrator'] },
+  { id: 'celebrity_style', name: 'Celebrity Style', description: 'High-status character direction for premium campaigns and aspirational commercial moments.', defaultEmotion: 'Aspirational desire', recommendedContentFormats: ['Commercial', 'Fashion Campaign', 'Hero Film'], recommendedStyles: ['Luxury', 'Editorial', 'Premium'], recommendedRoles: ['Brand Ambassador', 'Presenter'] },
+  { id: 'ai_influencer', name: 'AI Influencer', description: 'Futuristic virtual creator for tech-forward, viral, stylized, and synthetic identity concepts.', defaultEmotion: 'Future curiosity', recommendedContentFormats: ['Viral Short', 'Tech Concept', 'AI Persona Story'], recommendedStyles: ['Future', 'Technology', 'Viral'], recommendedRoles: ['Presenter', 'Brand Ambassador', 'Narrator'] },
+  { id: 'mascot', name: 'Mascot', description: 'Brand character for playful explainers, memorable identity, and family-safe campaigns.', defaultEmotion: 'Friendly fun', recommendedContentFormats: ['Brand Explainer', 'Social Short', 'Educational Story'], recommendedStyles: ['Playful', 'Graphic', 'Friendly'], recommendedRoles: ['Narrator', 'Brand Ambassador'] },
+  { id: '3d_character', name: '3D Character', description: 'Stylized 3D character direction for product demos, animated explainers, and brand worlds.', defaultEmotion: 'Polished wonder', recommendedContentFormats: ['3D Explainer', 'Animated Product Film', 'Commercial'], recommendedStyles: ['3D', 'Premium', 'Animated'], recommendedRoles: ['Presenter', 'Narrator', 'Brand Ambassador'] },
+  { id: 'anime_character', name: 'Anime Character', description: 'Anime-inspired character for stylized storytelling, youth culture, and expressive concepts.', defaultEmotion: 'Expressive energy', recommendedContentFormats: ['Anime Short', 'Story Scene', 'Social Content'], recommendedStyles: ['Anime', 'Expressive', 'Viral'], recommendedRoles: ['Presenter', 'Lifestyle Character', 'Narrator'] },
+  { id: 'no_character', name: 'No Character', description: 'Product-only direction with no on-screen character, prioritizing product, environment, and motion.', defaultEmotion: 'Product focus', recommendedContentFormats: ['Hero Product Shot', 'Product Film', 'Feature Highlight'], recommendedStyles: ['Minimal', 'Product-led', 'Clean'], recommendedRoles: ['Narrator'] },
+];
+
+const characterCountOptions = ['1 Character', '2 Characters', '3 Characters', 'Multiple Characters'];
+const characterRoleOptions = ['Presenter', 'Reviewer', 'Expert', 'Customer', 'Narrator', 'Lifestyle Character', 'Brand Ambassador'];
+
 const creativeStudioConcepts = [
   {
     title: 'Luxury Documentary',
@@ -209,6 +237,9 @@ let directorActionNotice = '';
 let promptPlanVisible = false;
 let promptPlanBlocks = [];
 let promptPlanNotice = '';
+let selectedCharacterId = 'female_creator';
+let selectedCharacterCount = '1 Character';
+let selectedCharacterRole = 'Presenter';
 
 function platformImage(platform, title = 'Product Preview') {
   const colors = {
@@ -1981,6 +2012,57 @@ function getConceptComparison(selectedConcept) {
   };
 }
 
+
+function getSelectedCharacterProfile() {
+  return characterLibrary.find((character) => character.id === selectedCharacterId) || characterLibrary[0];
+}
+
+function getCharacterDirectorSignals(character = getSelectedCharacterProfile()) {
+  const signalMap = {
+    doctor: ['Trust', 'Educational', 'Authority'],
+    family: ['Warm', 'Lifestyle', 'Trust'],
+    beauty_influencer: ['UGC', 'Review', 'Beauty Content'],
+    ai_influencer: ['Future', 'Technology', 'Viral'],
+    tech_reviewer: ['Proof', 'Comparison', 'Feature Clarity'],
+    fitness_coach: ['Transformation', 'Fitness', 'Educational'],
+    no_character: ['Product Focus', 'Hero Shot', 'Minimal'],
+  };
+
+  return signalMap[character.id] || [character.defaultEmotion, ...character.recommendedStyles.slice(0, 2)];
+}
+
+function getCharacterConceptContext(character = getSelectedCharacterProfile()) {
+  if (character.id === 'no_character') {
+    return {
+      description: 'The concept stays product-led with no on-screen character.',
+      storyAngle: 'Keep attention on product motion, environment, and proof.',
+    };
+  }
+
+  return {
+    description: `${character.name} appears as ${selectedCharacterRole.toLowerCase()} for ${selectedCharacterCount.toLowerCase()}, giving the concept ${character.defaultEmotion.toLowerCase()}.`,
+    storyAngle: `${character.name} should guide the story as ${selectedCharacterRole.toLowerCase()} while keeping the product central.`,
+  };
+}
+
+function getCharacterStoryboardDirection(character = getSelectedCharacterProfile()) {
+  if (character.id === 'no_character') return 'No on-screen character is used; product, camera, and environment carry the story.';
+  return `${character.name} as ${selectedCharacterRole.toLowerCase()} anchors the scene with ${character.defaultEmotion.toLowerCase()}.`;
+}
+
+function updateCharacterEngineSelection({ characterId, characterCount, characterRole } = {}) {
+  if (characterId) selectedCharacterId = characterId;
+  if (characterCount) selectedCharacterCount = characterCount;
+  if (characterRole) selectedCharacterRole = characterRole;
+  selectedConceptId = '';
+  generatedStoryboardScenes = [];
+  storyboardVariation = 0;
+  storyboardNotice = 'Character Engine updated. Concept Board, AI Director, Storyboard, and Prompt Plan context refreshed.';
+  directorActionNotice = '';
+  resetPromptPlanBuilder();
+  render();
+}
+
 function getStoryboardFeedback(storyboard = [], selectedConcept) {
   if (storyboard.length === 0) return 'Storyboard not generated yet. Generate storyboard to let AI Director evaluate narrative structure.';
   if (selectedConcept?.id === 'luxury-documentary') return 'Current storyboard emphasizes premium brand perception through reveal, story, experience, and hero shot progression.';
@@ -1990,7 +2072,7 @@ function getStoryboardFeedback(storyboard = [], selectedConcept) {
   return 'Current storyboard creates a clear product narrative with setup, proof, transformation, and closing memory.';
 }
 
-function generateDirectorAnalysis({ projectGoal: goal = 'Sell Product', selectedProducts: products = [], creativeSearchQuery: query = '', selectedCreativeTags: tags = [], selectedConcept, storyboard = [] } = {}) {
+function generateDirectorAnalysis({ projectGoal: goal = 'Sell Product', selectedProducts: products = [], creativeSearchQuery: query = '', selectedCreativeTags: tags = [], selectedConcept, storyboard = [], selectedCharacter = getSelectedCharacterProfile() } = {}) {
   const selectedProduct = getPrimarySelectedProduct(products);
   const category = detectProductCategory(selectedProduct);
   const productSuggestions = getProductAwareSuggestions(category);
@@ -2002,14 +2084,16 @@ function generateDirectorAnalysis({ projectGoal: goal = 'Sell Product', selected
   const health = calculateCreativeHealth({ selectedConcept, storyboard, selectedCreativeTags: tags });
   const comparison = getConceptComparison(selectedConcept);
   const storyboardFeedback = getStoryboardFeedback(storyboard, selectedConcept);
+  const characterSignals = getCharacterDirectorSignals(selectedCharacter);
+  const characterSummary = `${selectedCharacter.name} as ${selectedCharacterRole.toLowerCase()} adds ${characterSignals.join(', ')} cues`;
 
   return {
     recommendedDirection: selectedConcept
       ? `${conceptTitle} should lead the creative direction for ${productTitle}, using ${tagSummary} to support ${goalStrategy.label}.`
       : `Start with ${goalStrategy.label} for ${productTitle}, then select a concept to sharpen the direction.`,
-    audienceInsight: `${category} audience signals suggest ${productSuggestions.join(', ')} angles will make the concept easier to trust and remember.`,
-    strategy: `Use ${goalStrategy.label}: ${goalStrategy.notes.join('; ')}. Search context: ${query.trim() || 'No search query yet'}.`,
-    opportunities: productSuggestions.map((suggestion) => `${suggestion} angle for ${productTitle}`),
+    audienceInsight: `${category} audience signals suggest ${productSuggestions.join(', ')} angles will make the concept easier to trust and remember. Character direction: ${characterSummary}.`,
+    strategy: `Use ${goalStrategy.label}: ${goalStrategy.notes.join('; ')}. Character Engine: ${selectedCharacter.name} / ${selectedCharacterCount} / ${selectedCharacterRole}. Search context: ${query.trim() || 'No search query yet'}.`,
+    opportunities: [...productSuggestions.map((suggestion) => `${suggestion} angle for ${productTitle}`), ...characterSignals.map((signal) => `${signal} character cue via ${selectedCharacter.name}`)],
     risks: selectedConcept
       ? comparison.negatives
       : ['Direction is broad until a concept is selected', 'Storyboard feedback is unavailable before generation'],
@@ -2177,6 +2261,7 @@ function handleDirectorAction(actionId) {
       selectedCreativeTags,
       selectedConcept,
       storyboard: generatedStoryboardScenes,
+      selectedCharacter: getSelectedCharacterProfile(),
     });
 
     promptPlanBlocks = createPromptPlanBlocks({
@@ -2185,6 +2270,7 @@ function handleDirectorAction(actionId) {
       selectedCreativeTags,
       storyboard: generatedStoryboardScenes,
       directorAnalysis,
+      selectedCharacter: getSelectedCharacterProfile(),
     });
     promptPlanVisible = true;
     promptPlanNotice = 'Prompt Plan Builder created. Edit each block and save when ready.';
@@ -2193,41 +2279,44 @@ function handleDirectorAction(actionId) {
   render();
 }
 
-function createPromptPlanBlocks({ selectedProduct, selectedConcept, selectedCreativeTags: tags = [], storyboard = [], directorAnalysis } = {}) {
+function createPromptPlanBlocks({ selectedProduct, selectedConcept, selectedCreativeTags: tags = [], storyboard = [], directorAnalysis, selectedCharacter = getSelectedCharacterProfile() } = {}) {
   const normalizedProduct = selectedProduct ? normalizeProduct(selectedProduct) : null;
   const productTitle = normalizedProduct?.title || 'selected product';
   const conceptTitle = selectedConcept?.title || 'active concept';
   const tagSummary = tags.length > 0 ? tags.join(', ') : 'cinematic product focus';
   const storyboardSummary = storyboard.length > 0 ? `${storyboard.length} scene storyboard` : 'storyboard direction pending';
   const primaryOpportunity = directorAnalysis?.opportunities?.[0] || `Product showcase angle for ${productTitle}`;
+  const characterDirection = selectedCharacter.id === 'no_character'
+    ? 'No on-screen character; keep the product as the hero.'
+    : `${selectedCharacter.name} as ${selectedCharacterRole.toLowerCase()} with ${selectedCharacter.defaultEmotion.toLowerCase()}.`;
 
   return [
     {
       id: 'image-prompt-direction',
       title: 'Image Prompt Direction',
       description: 'Still-image creative direction for product visuals, campaign frames, and placeholder gallery planning.',
-      promptText: `Create premium still frames for ${productTitle} using ${conceptTitle}, ${tagSummary}, and clear product visibility. Prioritize refined lighting, strong composition, and brand-safe product detail.`,
+      promptText: `Create premium still frames for ${productTitle} using ${conceptTitle}, ${tagSummary}, and clear product visibility. Character direction: ${characterDirection} Prioritize refined lighting, strong composition, and brand-safe product detail.`,
       status: 'pending',
     },
     {
       id: 'video-prompt-direction',
       title: 'Video Prompt Direction',
       description: 'Video structure direction for future generation tools, edits, and storyboard-aware motion planning.',
-      promptText: `Build a short sequence for ${productTitle} from the ${storyboardSummary}. Use visible product proof, emotional pacing, and ${primaryOpportunity}.`,
+      promptText: `Build a short sequence for ${productTitle} from the ${storyboardSummary}. Use ${characterDirection} Include visible product proof, emotional pacing, and ${primaryOpportunity}.`,
       status: 'pending',
     },
     {
       id: 'audio-direction',
       title: 'Audio Direction',
       description: 'Sound, rhythm, pacing, and voice guidance for the creative concept.',
-      promptText: selectedConcept?.audioDirection || 'Use soft pacing, clean transitions, and brand-safe sound texture that supports the product story.',
+      promptText: `${selectedConcept?.audioDirection || 'Use soft pacing, clean transitions, and brand-safe sound texture that supports the product story.'} Match the voice and presence of ${characterDirection}`,
       status: 'pending',
     },
     {
       id: 'caption-direction',
       title: 'Caption Direction',
       description: 'Caption and copy direction for the product story without creating publishing automation.',
-      promptText: `Lead with the creative hook for ${productTitle}, explain the product benefit, support ${directorAnalysis?.recommendedDirection || conceptTitle}, and close with a clear next step.`,
+      promptText: `Lead with the creative hook for ${productTitle}, explain the product benefit through ${characterDirection}, support ${directorAnalysis?.recommendedDirection || conceptTitle}, and close with a clear next step.`,
       status: 'pending',
     },
   ];
@@ -2390,10 +2479,17 @@ function createMockConcepts({ selectedProducts: products = [], selectedCreativeT
   const selectedProduct = normalizedProducts[0];
   const productTitle = selectedProduct?.title || 'selected product';
   const searchContext = query.trim() || tags.join(', ') || 'creative direction';
+  const character = getSelectedCharacterProfile();
+  const characterContext = getCharacterConceptContext(character);
   const candidateConcepts = [];
   const hasTag = (tagName) => tags.some((tag) => tag.toLowerCase().includes(tagName.toLowerCase()));
   const addConcept = (concept) => {
-    if (!candidateConcepts.some((existingConcept) => existingConcept.id === concept.id)) candidateConcepts.push(concept);
+    if (candidateConcepts.some((existingConcept) => existingConcept.id === concept.id)) return;
+    candidateConcepts.push({
+      ...concept,
+      description: `${concept.description} ${characterContext.description}`,
+      storyAngle: `${concept.storyAngle} ${characterContext.storyAngle}`,
+    });
   };
 
   if (hasTag('ASMR')) {
@@ -2610,6 +2706,7 @@ function generateMockStoryboard({ selectedConcept, selectedCreativeTags: tags = 
   const productTitle = normalizedProducts[0]?.title || 'selected product';
   const concept = selectedConcept || createMockConcepts({ selectedProducts: normalizedProducts, selectedCreativeTags: tags, creativeSearchQuery, projectGoal: goal })[0];
   const tagContext = tags.length > 0 ? tags.join(', ') : 'cinematic product direction';
+  const characterDirection = getCharacterStoryboardDirection();
 
   return getStoryboardSceneTemplates(concept).map((scene, index) => {
     const variationDetails = getStoryboardVariationDetails(index, variation);
@@ -2617,7 +2714,7 @@ function generateMockStoryboard({ selectedConcept, selectedCreativeTags: tags = 
     return {
       id: `${concept.id}-scene-${index + 1}-v${variation + 1}`,
       title: scene.title,
-      description: `${scene.title} for ${productTitle}, shaped by ${concept.title} and ${tagContext}.`,
+      description: `${scene.title} for ${productTitle}, shaped by ${concept.title}, ${tagContext}, and Character Engine direction: ${characterDirection}`,
       duration: variationDetails.duration,
       camera: variationDetails.camera,
       motion: variationDetails.motion,
@@ -2702,6 +2799,55 @@ function renderReferenceDropzonePlaceholder(referenceType) {
   `;
 }
 
+
+function renderCharacterProfilePanel() {
+  const character = getSelectedCharacterProfile();
+
+  return `
+    <section class="character-profile-panel" aria-label="Selected Character Profile">
+      <div>
+        <span class="studio-kicker">Character Profile</span>
+        <h3>${escapeHtml(character.name)}</h3>
+        <p>${escapeHtml(character.description)}</p>
+      </div>
+      <dl>
+        <div><dt>Recommended Style</dt><dd>${escapeHtml(character.recommendedStyles.join(', '))}</dd></div>
+        <div><dt>Recommended Content Types</dt><dd>${escapeHtml(character.recommendedContentFormats.join(', '))}</dd></div>
+        <div><dt>Recommended Roles</dt><dd>${escapeHtml(character.recommendedRoles.join(', '))}</dd></div>
+      </dl>
+    </section>
+  `;
+}
+
+function renderCharacterEngineSelector() {
+  return `
+    <section class="studio-input-section character-engine-section" aria-label="Character Engine">
+      <h3>Character Engine</h3>
+      <div class="character-selector-grid">
+        <label class="studio-field">
+          <span>Character Type</span>
+          <select id="character-type-selector" aria-label="Character Type">
+            ${characterLibrary.map((character) => `<option value="${escapeHtml(character.id)}" ${character.id === selectedCharacterId ? 'selected' : ''}>${escapeHtml(character.name)}</option>`).join('')}
+          </select>
+        </label>
+        <label class="studio-field">
+          <span>Character Count</span>
+          <select id="character-count-selector" aria-label="Character Count">
+            ${characterCountOptions.map((count) => `<option value="${escapeHtml(count)}" ${count === selectedCharacterCount ? 'selected' : ''}>${escapeHtml(count)}</option>`).join('')}
+          </select>
+        </label>
+        <label class="studio-field">
+          <span>Character Role</span>
+          <select id="character-role-selector" aria-label="Character Role">
+            ${characterRoleOptions.map((role) => `<option value="${escapeHtml(role)}" ${role === selectedCharacterRole ? 'selected' : ''}>${escapeHtml(role)}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      ${renderCharacterProfilePanel()}
+    </section>
+  `;
+}
+
 function renderSelectedProductContext(product) {
   const normalizedProduct = normalizeProduct(product);
 
@@ -2745,6 +2891,7 @@ function renderBlueprintPanel(savedProducts = []) {
     { label: 'Goal', value: projectGoal },
     { label: 'Selected Product', value: selectedProduct?.title || 'No selected product yet' },
     { label: 'Concept', value: activeConcept.title },
+    { label: 'Character', value: `${getSelectedCharacterProfile().name} · ${selectedCharacterCount} · ${selectedCharacterRole}` },
     { label: 'Audience', value: 'Creative buyers who need a clear reason to care before conversion.' },
     { label: 'Style', value: activeConcept.style },
     { label: 'Emotion', value: activeConcept.emotion },
@@ -2807,6 +2954,7 @@ function renderDirectorPanel(savedProducts = []) {
     selectedCreativeTags,
     selectedConcept: activeConcept,
     storyboard: generatedStoryboardScenes,
+    selectedCharacter: getSelectedCharacterProfile(),
   });
 
   return `
@@ -2850,6 +2998,7 @@ function renderCreativeInputsPanel(savedProducts) {
       </div>
       ${renderProjectGoalSelector()}
       ${renderCreativeSearchBar()}
+      ${renderCharacterEngineSelector()}
       <section class="studio-input-section">
         <h3>References</h3>
         <div class="reference-placeholder-grid">
@@ -3176,6 +3325,18 @@ function attachContentGeneratorEvents() {
   });
 
   document.querySelector('#expand-creative-ideas')?.addEventListener('click', expandCreativeSearchIdeas);
+
+  document.querySelector('#character-type-selector')?.addEventListener('change', (event) => {
+    updateCharacterEngineSelection({ characterId: event.target.value });
+  });
+
+  document.querySelector('#character-count-selector')?.addEventListener('change', (event) => {
+    updateCharacterEngineSelection({ characterCount: event.target.value });
+  });
+
+  document.querySelector('#character-role-selector')?.addEventListener('change', (event) => {
+    updateCharacterEngineSelection({ characterRole: event.target.value });
+  });
 
   document.querySelectorAll('[data-select-concept-id]').forEach((conceptButton) => {
     conceptButton.addEventListener('click', () => selectCreativeConcept(conceptButton.dataset.selectConceptId));
