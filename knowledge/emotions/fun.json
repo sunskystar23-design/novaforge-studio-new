@@ -1,0 +1,23 @@
+{
+  "id": "emotion_fun",
+  "name": "Fun",
+  "description": "Playful, energetic emotional tone for entertaining social content and approachable product moments.",
+  "keywords": [
+    "fun",
+    "playful",
+    "energetic",
+    "joyful",
+    "bright",
+    "entertaining"
+  ],
+  "prompt_fragments": [
+    "playful product moment with bright energy",
+    "fun social-first product scene",
+    "joyful creator interaction with the product"
+  ],
+  "related_modules": [
+    "styles/viral.json",
+    "characters/family.json",
+    "locations/beach.json"
+  ]
+}
