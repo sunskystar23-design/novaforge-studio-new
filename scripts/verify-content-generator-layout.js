@@ -75,14 +75,17 @@ function extractFunctionBody(source, functionName) {
 const productContextBody = extractFunctionBody(app, 'renderProductContextBar');
 const contentGeneratorBody = extractFunctionBody(app, 'renderContentGenerator');
 assert.doesNotMatch(productContextBody, /href=\"\/novaforge-studio-new\/\"/);
+assert.doesNotMatch(productContextBody, /<img/);
+assert.doesNotMatch(productContextBody, /loaded-products-grid/);
+assert.doesNotMatch(productContextBody, /renderLoadedProductCard/);
 assert.doesNotMatch(contentGeneratorBody, /href=\"\/novaforge-studio-new\/\"/);
 assert.match(app, /product-context-bar/);
-assert.match(app, /pcb-primary/);
+assert.match(app, /pcb-left/);
 assert.match(app, /pcb-manage-btn/);
 assert.match(app, /renderCreativeStepFlow.*renderCreativeCanvasPanel/);
 assert.match(rendered, /Manage Products/);
 assert.match(rendered, /class=\"pcb-manage-btn\"/);
-assert.match(app, /Product selection is managed in Product Command Center\. Current mission keeps existing selection locked\./);
+assert.doesNotMatch(rendered, /<img class=\"pcb/);
 assert.match(app, /window\.location\.href = '\/novaforge-studio-new\/content-generator\/';/);
 assert.match(vm.runInContext('renderProductCommandCenter()', context), /Product Command Center/);
 

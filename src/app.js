@@ -3268,7 +3268,6 @@ function renderCreativeStudioShell(savedProducts) {
 function renderProductContextBar(savedProducts) {
   const products = savedProducts.map((product) => normalizeProduct(product));
   const primary = products[0] || {
-    image: platformImage('Local Preview'),
     title: 'No product selected',
     name: 'No product selected',
     platform: 'No platform',
@@ -3278,15 +3277,12 @@ function renderProductContextBar(savedProducts) {
 
   return `
     <div class="product-context-bar" id="product-context-bar" aria-label="product-context-bar">
-      <div class="pcb-primary">
-        <img class="pcb-thumb" src="${escapeHtml(primary.image)}" alt="" />
-        <div class="pcb-info">
-          <span class="pcb-name">${escapeHtml(primaryName)}</span>
-          <span class="pcb-meta">${products.length} products · ${escapeHtml(primaryPlatform)}</span>
-        </div>
+      <div class="pcb-left">
+        <span class="pcb-label">Primary Product</span>
+        <span class="pcb-name">${escapeHtml(primaryName)}</span>
+        <span class="pcb-meta">${products.length} products · ${escapeHtml(primaryPlatform)}</span>
       </div>
       <button class="pcb-manage-btn" id="manage-products-context" onclick="scrollToTop()" type="button">Manage Products</button>
-      <p class="studio-empty-note manage-products-notice" id="manage-products-notice" hidden></p>
     </div>
   `;
 }
@@ -3483,11 +3479,6 @@ function renderContentGeneratorLanding() {
 }
 
 function scrollToTop() {
-  const notice = document.querySelector('#manage-products-notice');
-  if (notice) {
-    notice.textContent = 'Product selection is managed in Product Command Center. Current mission keeps existing selection locked.';
-    notice.hidden = false;
-  }
   document.querySelector('#product-context-bar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
