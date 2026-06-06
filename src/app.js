@@ -3195,6 +3195,7 @@ function renderCreativeInputsPanel(savedProducts) {
 }
 
 function renderCreativeCanvasPanel(savedProducts = []) {
+  const renderCreativeStepFlow_renderCreativeCanvasPanel = renderCreativeStepFlow(savedProducts);
   const concepts = getCreativeStudioConcepts(savedProducts);
   const storyboardCards = generatedStoryboardScenes.length > 0
     ? generatedStoryboardScenes.map(renderStoryboardCard).join('')
@@ -3209,7 +3210,8 @@ function renderCreativeCanvasPanel(savedProducts = []) {
   const notice = storyboardNotice ? `<p class="creative-search-notice">${escapeHtml(storyboardNotice)}</p>` : '';
 
   return `
-    <section class="studio-canvas-panel" aria-label="Creative Canvas">
+    <div class="creative-canvas-panel studio-canvas-panel" aria-label="Creative Canvas">
+      ${renderCreativeStepFlow_renderCreativeCanvasPanel}
       <section class="studio-card concept-board" id="concept-board">
         <div class="studio-section-heading">
           <span class="studio-kicker">Creative Canvas</span>
@@ -3238,7 +3240,7 @@ function renderCreativeCanvasPanel(savedProducts = []) {
           ${storyboardCards}
         </div>
       </section>
-    </section>
+    </div>
   `;
 }
 
@@ -3253,7 +3255,6 @@ function renderCreativeStudioShell(savedProducts) {
         </div>
         <span class="studio-status-pill">${savedProducts.length} selected product(s) loaded</span>
       </div>
-      ${renderCreativeStepFlow(savedProducts)}
       <div class="creative-studio-grid">
         ${renderCreativeInputsPanel(savedProducts)}
         ${renderCreativeCanvasPanel(savedProducts)}
@@ -3264,49 +3265,29 @@ function renderCreativeStudioShell(savedProducts) {
 }
 
 
-function renderLoadedProductCard(product) {
-  const sourceUrl = product.sourceUrl || product.productUrl || '';
-  const sourceLink = sourceUrl
-    ? `<a class="source-url" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>`
-    : '<span class="source-url unavailable">No source URL available</span>';
-
-  return `
-    <article class="loaded-product-card">
-      <img alt="" src="${escapeHtml(product.image)}" />
-      <div>
-        <span class="platform-chip">${escapeHtml(product.platform)}</span>
-        <h3>${escapeHtml(product.title)}</h3>
-        <p>${escapeHtml(product.price)}</p>
-        ${sourceLink}
-      </div>
-    </article>
-  `;
-}
-
 function renderProductContextBar(savedProducts) {
-  const emptyState = savedProducts.length === 0
-    ? '<p class="studio-empty-note">No selected products are loaded. Use the Product Command Center Continue flow to pass products into this workspace.</p>'
-    : '';
+  const products = savedProducts.map((product) => normalizeProduct(product));
+  const primary = products[0] || {
+    image: platformImage('Local Preview'),
+    title: 'No product selected',
+    name: 'No product selected',
+    platform: 'No platform',
+  };
+  const primaryName = primary.name || primary.title || 'No product selected';
+  const primaryPlatform = primary.platform || 'No platform';
 
   return `
-    <section class="product-context-bar" id="product-context-bar" aria-label="Product Context Bar">
-      <div class="product-context-bar-heading">
-        <div>
-          <span class="studio-kicker">product-context-bar</span>
-          <h1>Product Context Bar</h1>
-          <p>Selected products passed from Product Command Center via existing localStorage/sessionStorage workflow.</p>
-        </div>
-        <div class="product-context-bar-actions">
-          <span class="studio-status-pill">${savedProducts.length} selected product(s)</span>
-          <button class="back-link back-button" id="manage-products-context" type="button">Manage Products</button>
+    <div class="product-context-bar" id="product-context-bar" aria-label="product-context-bar">
+      <div class="pcb-primary">
+        <img class="pcb-thumb" src="${escapeHtml(primary.image)}" alt="" />
+        <div class="pcb-info">
+          <span class="pcb-name">${escapeHtml(primaryName)}</span>
+          <span class="pcb-meta">${products.length} products · ${escapeHtml(primaryPlatform)}</span>
         </div>
       </div>
-      ${emptyState}
+      <button class="pcb-manage-btn" id="manage-products-context" onclick="scrollToTop()" type="button">Manage Products</button>
       <p class="studio-empty-note manage-products-notice" id="manage-products-notice" hidden></p>
-      <div class="loaded-products-grid">
-        ${savedProducts.map(renderLoadedProductCard).join('')}
-      </div>
-    </section>
+    </div>
   `;
 }
 
@@ -3501,6 +3482,15 @@ function renderContentGeneratorLanding() {
   return renderContentGenerator();
 }
 
+function scrollToTop() {
+  const notice = document.querySelector('#manage-products-notice');
+  if (notice) {
+    notice.textContent = 'Product selection is managed in Product Command Center. Current mission keeps existing selection locked.';
+    notice.hidden = false;
+  }
+  document.querySelector('#product-context-bar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 
 function attachContentGeneratorEvents() {
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
@@ -3509,12 +3499,7 @@ function attachContentGeneratorEvents() {
   document.querySelector('#manage-products-context')?.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const notice = document.querySelector('#manage-products-notice');
-    if (notice) {
-      notice.textContent = 'Product selection is managed in Product Command Center. Current mission keeps existing selection locked.';
-      notice.hidden = false;
-    }
-    document.querySelector('#product-context-bar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    scrollToTop();
   });
 
   document.querySelector('#project-goal-selector')?.addEventListener('change', (event) => {

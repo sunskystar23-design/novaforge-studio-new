@@ -103,7 +103,8 @@ if (!/function renderContentGenerator\s*\(/.test(appSource)) throw new Error('fu
 if (!appSource.includes('renderProductContextBar(savedProducts)')) throw new Error('renderContentGenerator must call renderProductContextBar(savedProducts)');
 if (!appSource.includes('renderCreativeStudioShell(savedProducts)')) throw new Error('renderContentGenerator must call renderCreativeStudioShell(savedProducts)');
 if (!appSource.includes('renderLegacyImageWorkspace(savedProducts)')) throw new Error('renderContentGenerator must call renderLegacyImageWorkspace(savedProducts)');
-['Product Context Bar', 'product-context-bar', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
+if (!/renderCreativeStepFlow.*renderCreativeCanvasPanel/.test(appSource)) throw new Error('renderCreativeStepFlow must be placed inside renderCreativeCanvasPanel');
+['product-context-bar', 'pcb-primary', 'pcb-manage-btn', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing updated Content Generator marker: ${text}`);
 });
 [
