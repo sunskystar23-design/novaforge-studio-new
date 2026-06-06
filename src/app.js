@@ -2391,7 +2391,7 @@ function renderPromptPlanBuilder() {
     : '';
 
   return `
-    <section class="prompt-plan-placeholder prompt-plan-builder" aria-label="Prompt Plan Builder">
+    <section class="prompt-plan-placeholder prompt-plan-builder" id="prompt-plan-builder" aria-label="Prompt Plan Builder">
       <div class="director-actions-heading">
         <span class="studio-kicker">Prompt Plan Builder</span>
         <h3>Prompt Plan</h3>
@@ -2868,7 +2868,7 @@ function renderCharacterProfilePanel() {
 
 function renderCharacterEngineSelector() {
   return `
-    <section class="studio-input-section character-engine-section" aria-label="Character Engine">
+    <section class="studio-input-section character-engine-section" id="character-engine-section" aria-label="Character Engine">
       <h3>Character Engine</h3>
       <div class="character-selector-grid">
         <label class="studio-field">
@@ -3010,12 +3010,12 @@ function renderCreativeStepFlow(savedProducts = []) {
             ? 'Prepare or update Prompt Plan Builder'
             : 'Review Legacy Image Workspace';
   const steps = [
-    { label: 'Products', target: '#product-context-bar', complete: hasProducts },
-    { label: 'Inputs', target: '#creative-inputs-panel', complete: hasProducts },
+    { label: 'Goal', target: '#creative-inputs-panel', complete: hasProducts },
+    { label: 'Product', target: '#product-context-bar', complete: hasProducts },
+    { label: 'Character', target: '#character-engine-section', complete: hasProducts },
     { label: 'Concept', target: '#concept-board', complete: conceptComplete },
-    { label: 'Blueprint', target: '#creative-blueprint-panel', complete: hasConcept },
-    { label: 'Storyboard', target: '#storyboard-panel', complete: storyboardComplete },
-    { label: 'AI Director', target: '#ai-director-panel', complete: hasConcept },
+    { label: 'Storyboard', target: '#storyboard-system', complete: storyboardComplete },
+    { label: 'Prompt Plan', target: '#ai-director-panel', complete: promptPlanComplete },
     { label: 'Generate', target: '#legacy-image-workspace', complete: promptPlanComplete },
   ];
 
@@ -3023,7 +3023,7 @@ function renderCreativeStepFlow(savedProducts = []) {
     <div class="creative-step-flow" aria-label="Step Flow">
       <div class="step-flow-list">
         ${steps.map((step) => `
-          <button class="${step.complete ? 'complete' : ''}" data-step-flow-target="${escapeHtml(step.target)}" type="button">${escapeHtml(step.label)}</button>
+          <button class="${step.complete ? 'complete' : ''}" data-step-target="${escapeHtml(step.target)}" type="button">${escapeHtml(step.label)}</button>
         `).join('')}
       </div>
       <p>Next Step: ${escapeHtml(nextStep)}</p>
@@ -3223,7 +3223,7 @@ function renderCreativeCanvasPanel(savedProducts = []) {
         ${renderConceptComparisonPanel(concepts)}
       </section>
       ${renderBlueprintPanel(savedProducts)}
-      <section class="studio-card storyboard-panel" id="storyboard-panel">
+      <section class="studio-card storyboard-panel" id="storyboard-system">
         <div class="studio-section-heading storyboard-heading">
           <div>
             <span class="studio-kicker">Storyboard Generator Mock</span>
@@ -3545,11 +3545,14 @@ function attachContentGeneratorEvents() {
   document.querySelector('#generate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(false));
   document.querySelector('#regenerate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(true));
 
-  document.querySelectorAll('[data-step-flow-target]').forEach((stepButton) => {
+  document.querySelectorAll('[data-step-target]').forEach((stepButton) => {
     stepButton.addEventListener('click', (event) => {
       event.preventDefault();
       event.stopPropagation();
-      document.querySelector(stepButton.dataset.stepFlowTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const selector = stepButton.dataset.stepTarget;
+      const target = document.querySelector(selector);
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target?.focus?.({ preventScroll: true });
     });
   });
 

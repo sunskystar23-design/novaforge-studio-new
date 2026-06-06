@@ -20,19 +20,20 @@ const storage = {
 const root = { innerHTML: '' };
 const stepButtons = [];
 let scrollCount = 0;
+let focusCount = 0;
 const targetSelectors = [
-  '#product-context-bar',
   '#creative-inputs-panel',
+  '#product-context-bar',
+  '#character-engine-section',
   '#concept-board',
-  '#creative-blueprint-panel',
-  '#storyboard-panel',
+  '#storyboard-system',
   '#ai-director-panel',
   '#legacy-image-workspace',
 ];
 
 function createStepButton(target) {
   return {
-    dataset: { stepFlowTarget: target },
+    dataset: { stepTarget: target },
     listeners: {},
     addEventListener(type, handler) {
       this.listeners[type] = handler;
@@ -60,12 +61,15 @@ const context = {
     querySelector(selector) {
       if (selector === '#root') return root;
       if (targetSelectors.includes(selector)) {
-        return { scrollIntoView: () => { scrollCount += 1; } };
+        return {
+          scrollIntoView: () => { scrollCount += 1; },
+          focus: () => { focusCount += 1; },
+        };
       }
       return null;
     },
     querySelectorAll(selector) {
-      if (selector === '[data-step-flow-target]') {
+      if (selector === '[data-step-target]') {
         stepButtons.length = 0;
         targetSelectors.forEach((target) => stepButtons.push(createStepButton(target)));
         return stepButtons;
@@ -98,20 +102,23 @@ let html = vm.runInContext('renderContentGeneratorLanding()', context);
 ].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing layout marker: ${text}`);
 });
+['Goal', 'Product', 'Character', 'Concept', 'Storyboard', 'Prompt Plan', 'Generate'].forEach((label) => {
+  if (!html.includes(`>${label}</button>`)) throw new Error(`Missing Step Flow button label: ${label}`);
+});
 if (!html.includes('Storyboard based on: Luxury Documentary')) throw new Error('Storyboard selected concept reference missing');
-const buttonMatches = [...html.matchAll(/<button[^>]*data-step-flow-target="([^"]+)"[^>]*type="button"/g)];
+const buttonMatches = [...html.matchAll(/<button[^>]*data-step-target="([^"]+)"[^>]*type="button"/g)];
 if (buttonMatches.length !== 7) throw new Error(`Expected 7 step flow buttons, found ${buttonMatches.length}`);
 targetSelectors.forEach((target) => {
   if (!buttonMatches.some((match) => match[1] === target)) throw new Error(`Missing step flow target ${target}`);
 });
-if (/<a[^>]*data-step-flow-target=/.test(html)) throw new Error('Step Flow must not render anchor navigation');
-const stepFlowHandlerMatch = appSource.match(/document\.querySelectorAll\('\[data-step-flow-target\]'\)[\s\S]*?document\.querySelectorAll\('\[data-director-action-id\]'\)/);
+if (/<a[^>]*data-step-target=/.test(html)) throw new Error('Step Flow must not render anchor navigation');
+const stepFlowHandlerMatch = appSource.match(/document\.querySelectorAll\('\[data-step-target\]'\)[\s\S]*?document\.querySelectorAll\('\[data-director-action-id\]'\)/);
 if (!stepFlowHandlerMatch) throw new Error('Step Flow handler block missing');
 const stepFlowHandlerSource = stepFlowHandlerMatch[0];
-['event.preventDefault()', 'event.stopPropagation()', 'scrollIntoView'].forEach((snippet) => {
+['event.preventDefault()', 'event.stopPropagation()', 'document.querySelector(selector)', 'scrollIntoView'].forEach((snippet) => {
   if (!stepFlowHandlerSource.includes(snippet)) throw new Error(`Step Flow handler missing ${snippet}`);
 });
-['window.location.href', 'window.location.pathname', '/novaforge-studio-new/', '/content-generator/'].forEach((forbidden) => {
+['window.location.href', 'window.location.pathname', 'window.location.assign', 'window.location.replace', 'history.pushState', 'history.replaceState', '/novaforge-studio-new/', '/content-generator/'].forEach((forbidden) => {
   if (stepFlowHandlerSource.includes(forbidden)) throw new Error(`Step Flow handler uses forbidden routing: ${forbidden}`);
 });
 vm.runInContext("toggleLockConcept('luxury-documentary')", context);
@@ -129,7 +136,7 @@ stepButtons.forEach((button) => {
     preventDefault: () => { prevented = true; },
     stopPropagation: () => { stopped = true; },
   });
-  if (!prevented || !stopped) throw new Error(`Step ${button.dataset.stepFlowTarget} did not prevent route bubbling`);
+  if (!prevented || !stopped) throw new Error(`Step ${button.dataset.stepTarget} did not prevent route bubbling`);
 });
 if (scrollCount !== 7) throw new Error(`Expected 7 local scroll calls, received ${scrollCount}`);
 if (context.window.location.href !== originalHref || context.window.location.pathname !== originalPathname) {
