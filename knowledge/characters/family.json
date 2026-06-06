@@ -1,0 +1,23 @@
+{
+  "id": "character_family",
+  "name": "Family",
+  "description": "A warm family group showing practical product value in everyday life.",
+  "keywords": [
+    "family",
+    "home",
+    "parents",
+    "children",
+    "warm",
+    "everyday"
+  ],
+  "prompt_fragments": [
+    "family using the product together",
+    "warm everyday family lifestyle scene",
+    "home-friendly practical product moment"
+  ],
+  "related_modules": [
+    "emotions/trust.json",
+    "emotions/fun.json",
+    "locations/studio.json"
+  ]
+}
