@@ -1,0 +1,23 @@
+{
+  "id": "style_viral",
+  "name": "Viral",
+  "description": "Fast, hook-driven social creative direction optimized for scroll-stopping moments and shareable product demos.",
+  "keywords": [
+    "viral",
+    "hook",
+    "trending",
+    "ugc",
+    "fast-paced",
+    "social"
+  ],
+  "prompt_fragments": [
+    "scroll-stopping social hook",
+    "fast-paced viral product demo",
+    "creator-style energetic framing"
+  ],
+  "related_modules": [
+    "characters/female_creator.json",
+    "emotions/fun.json",
+    "motions/quick_reveal"
+  ]
+}
