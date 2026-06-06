@@ -1,0 +1,23 @@
+{
+  "id": "character_expert",
+  "name": "Expert",
+  "description": "A credible specialist, reviewer, or demonstrator explaining product benefits with authority.",
+  "keywords": [
+    "expert",
+    "authority",
+    "reviewer",
+    "professional",
+    "credible",
+    "educational"
+  ],
+  "prompt_fragments": [
+    "expert presenter explaining product benefits",
+    "professional product review setup",
+    "credible demonstration with clear feature callouts"
+  ],
+  "related_modules": [
+    "emotions/trust.json",
+    "styles/minimal.json",
+    "locations/studio.json"
+  ]
+}
