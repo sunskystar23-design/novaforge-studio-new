@@ -728,6 +728,7 @@ const imagePromptCategories = [
 function createImageWorkspaceState(overrides = {}) {
   return {
     prompts: [],
+    jobs: [],
     images: [],
     ...overrides,
   };
@@ -738,6 +739,7 @@ function readImageWorkspaceState() {
     const savedState = JSON.parse(localStorage.getItem(imageWorkspaceStorageKey) || '{}');
     return createImageWorkspaceState({
       prompts: Array.isArray(savedState.prompts) ? savedState.prompts : [],
+      jobs: Array.isArray(savedState.jobs) ? savedState.jobs : [],
       images: Array.isArray(savedState.images) ? savedState.images : [],
     });
   } catch {
@@ -787,6 +789,7 @@ function generateImagePromptsForProduct(product) {
   imageWorkspaceState = createImageWorkspaceState({
     ...imageWorkspaceState,
     prompts: [...existingOtherPrompts, ...generatedPrompts],
+    jobs: imageWorkspaceState.jobs.filter((job) => job.productId !== productKey),
     images: imageWorkspaceState.images.filter((image) => image.productId !== productKey),
   });
   saveImageWorkspaceState();
@@ -804,22 +807,132 @@ function toggleImagePrompt(promptId) {
   render();
 }
 
-function createPlaceholderImagesFromSelectedPrompts() {
+function createImageJobFromPrompt(prompt) {
+  return {
+    jobId: `${prompt.id}-image-job`,
+    promptId: prompt.id,
+    productId: prompt.productId,
+    productTitle: prompt.productTitle,
+    category: prompt.category,
+    prompt: prompt.promptText,
+    status: 'pending',
+  };
+}
+
+function createImageJobsFromSelectedPrompts() {
   const selectedPrompts = imageWorkspaceState.prompts.filter((prompt) => prompt.selected);
+  const existingJobIds = new Set(imageWorkspaceState.jobs.map((job) => job.jobId));
+  const newJobs = selectedPrompts
+    .map(createImageJobFromPrompt)
+    .filter((job) => !existingJobIds.has(job.jobId));
+
   imageWorkspaceState = createImageWorkspaceState({
     ...imageWorkspaceState,
-    images: selectedPrompts.map((prompt) => ({
-      id: `${prompt.id}-placeholder-image`,
-      promptId: prompt.id,
-      productId: prompt.productId,
-      productTitle: prompt.productTitle,
-      category: prompt.category,
-      promptPreview: prompt.promptText,
-      selected: prompt.selected,
-    })),
+    jobs: [...imageWorkspaceState.jobs, ...newJobs],
   });
   saveImageWorkspaceState();
   render();
+}
+
+function getImageJobCounters() {
+  return imageWorkspaceState.jobs.reduce(
+    (counters, job) => ({
+      ...counters,
+      [job.status]: (counters[job.status] || 0) + 1,
+      total: counters.total + 1,
+    }),
+    { pending: 0, selected: 0, generating: 0, completed: 0, failed: 0, total: 0 },
+  );
+}
+
+function selectAllImageJobs() {
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    jobs: imageWorkspaceState.jobs.map((job) => (
+      job.status === 'pending' ? { ...job, status: 'selected' } : job
+    )),
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
+function removeImageJob(jobId) {
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    jobs: imageWorkspaceState.jobs.filter((job) => job.jobId !== jobId),
+    images: imageWorkspaceState.images.filter((image) => image.jobId !== jobId),
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
+function removeCompletedImageJobs() {
+  const completedJobIds = new Set(imageWorkspaceState.jobs.filter((job) => job.status === 'completed').map((job) => job.jobId));
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    jobs: imageWorkspaceState.jobs.filter((job) => job.status !== 'completed'),
+    images: imageWorkspaceState.images.filter((image) => !completedJobIds.has(image.jobId)),
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
+function clearImageJobsQueue() {
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    jobs: [],
+    images: [],
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
+function createGalleryImageFromJob(job) {
+  return {
+    id: `${job.jobId}-placeholder-image`,
+    jobId: job.jobId,
+    promptId: job.promptId,
+    productId: job.productId,
+    productTitle: job.productTitle,
+    category: job.category,
+    promptPreview: job.prompt,
+    selected: job.status === 'completed',
+  };
+}
+
+function runImageQueue() {
+  const runnableJobIds = imageWorkspaceState.jobs
+    .filter((job) => job.status === 'pending' || job.status === 'selected')
+    .map((job) => job.jobId);
+
+  if (runnableJobIds.length === 0) return;
+
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    jobs: imageWorkspaceState.jobs.map((job) => (
+      runnableJobIds.includes(job.jobId) ? { ...job, status: 'generating' } : job
+    )),
+  });
+  saveImageWorkspaceState();
+  render();
+
+  setTimeout(() => {
+    const completedJobs = imageWorkspaceState.jobs
+      .filter((job) => runnableJobIds.includes(job.jobId))
+      .map((job) => ({ ...job, status: 'completed' }));
+    const completedJobIds = new Set(completedJobs.map((job) => job.jobId));
+    const otherImages = imageWorkspaceState.images.filter((image) => !completedJobIds.has(image.jobId));
+
+    imageWorkspaceState = createImageWorkspaceState({
+      ...imageWorkspaceState,
+      jobs: imageWorkspaceState.jobs.map((job) => (
+        completedJobIds.has(job.jobId) ? { ...job, status: 'completed' } : job
+      )),
+      images: [...otherImages, ...completedJobs.map(createGalleryImageFromJob)],
+    });
+    saveImageWorkspaceState();
+    render();
+  }, 350);
 }
 
 function readProductsFromStorage(storage) {
@@ -1382,15 +1495,35 @@ function renderPlaceholderImageCard(image) {
   `;
 }
 
+
+function renderImageJobCard(job) {
+  return `
+    <article class="image-job-card">
+      <div>
+        <h3>${escapeHtml(job.productTitle)}</h3>
+        <p>${escapeHtml(job.category)}</p>
+      </div>
+      <span class="job-status-badge ${escapeHtml(job.status)}">${escapeHtml(job.status)}</span>
+      <button class="job-remove-button" data-remove-image-job-id="${escapeHtml(job.jobId)}" type="button">Remove Job</button>
+    </article>
+  `;
+}
+
 function renderImageCreationWorkspace(savedProducts) {
   const selectedPromptCount = imageWorkspaceState.prompts.filter((prompt) => prompt.selected).length;
   const promptCards = imageWorkspaceState.prompts.map(renderGeneratedPromptCard).join('');
   const imageCards = imageWorkspaceState.images.map(renderPlaceholderImageCard).join('');
+  const jobCards = imageWorkspaceState.jobs.map(renderImageJobCard).join('');
+  const jobCounters = getImageJobCounters();
+  const hasRunnableJobs = imageWorkspaceState.jobs.some((job) => job.status === 'pending' || job.status === 'selected');
   const promptEmptyState = imageWorkspaceState.prompts.length === 0
     ? '<p class="empty-state">Generate image prompts from a selected product to start.</p>'
     : '';
+  const jobEmptyState = imageWorkspaceState.jobs.length === 0
+    ? '<p class="empty-state">Use selected prompts to create pending image jobs.</p>'
+    : '';
   const galleryEmptyState = imageWorkspaceState.images.length === 0
-    ? '<p class="empty-state">Select prompts, then use them to create placeholder image cards.</p>'
+    ? '<p class="empty-state">Run completed image jobs to create placeholder image cards.</p>'
     : '';
 
   return `
@@ -1428,6 +1561,29 @@ function renderImageCreationWorkspace(savedProducts) {
         <button class="workspace-action-button secondary" ${selectedPromptCount === 0 ? 'disabled' : ''} id="use-selected-prompts" type="button">Use Selected Prompts for Images</button>
       </div>
       <div class="prompt-grid">${promptEmptyState}${promptCards}</div>
+    </section>
+
+    <section class="image-workspace-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Image Jobs Queue</p>
+          <h2>Image Jobs Queue</h2>
+          <p class="source-label">Pending prompts are queued here before simulated image generation.</p>
+        </div>
+        <div class="queue-actions">
+          <button class="workspace-action-button" ${imageWorkspaceState.jobs.length === 0 ? 'disabled' : ''} id="select-all-image-jobs" type="button">Select All</button>
+          <button class="workspace-action-button secondary" ${hasRunnableJobs ? '' : 'disabled'} id="run-image-queue" type="button">Run Image Queue</button>
+          <button class="workspace-action-button" ${jobCounters.completed === 0 ? 'disabled' : ''} id="remove-completed-image-jobs" type="button">Remove Completed</button>
+          <button class="workspace-action-button danger" ${imageWorkspaceState.jobs.length === 0 ? 'disabled' : ''} id="clear-image-jobs" type="button">Clear Queue</button>
+        </div>
+      </div>
+      <div class="job-summary-grid">
+        <span>Pending <strong>${jobCounters.pending}</strong></span>
+        <span>Completed <strong>${jobCounters.completed}</strong></span>
+        <span>Failed <strong>${jobCounters.failed}</strong></span>
+        <span>Total <strong>${jobCounters.total}</strong></span>
+      </div>
+      <div class="image-jobs-list">${jobEmptyState}${jobCards}</div>
     </section>
 
     <section class="image-workspace-section">
@@ -1488,7 +1644,16 @@ function attachContentGeneratorEvents() {
   });
 
   document.querySelector('#use-selected-prompts')?.addEventListener('click', () => {
-    createPlaceholderImagesFromSelectedPrompts();
+    createImageJobsFromSelectedPrompts();
+  });
+
+  document.querySelector('#select-all-image-jobs')?.addEventListener('click', selectAllImageJobs);
+  document.querySelector('#run-image-queue')?.addEventListener('click', runImageQueue);
+  document.querySelector('#remove-completed-image-jobs')?.addEventListener('click', removeCompletedImageJobs);
+  document.querySelector('#clear-image-jobs')?.addEventListener('click', clearImageJobsQueue);
+
+  document.querySelectorAll('[data-remove-image-job-id]').forEach((button) => {
+    button.addEventListener('click', () => removeImageJob(button.dataset.removeImageJobId));
   });
 }
 
