@@ -1,0 +1,23 @@
+{
+  "id": "character_female_creator",
+  "name": "Female Creator",
+  "description": "A relatable female content creator presenting or demonstrating a product in a social-first format.",
+  "keywords": [
+    "creator",
+    "female",
+    "ugc",
+    "influencer",
+    "demo",
+    "review"
+  ],
+  "prompt_fragments": [
+    "female creator holding the product",
+    "authentic UGC-style product demonstration",
+    "friendly creator testimonial framing"
+  ],
+  "related_modules": [
+    "styles/viral.json",
+    "locations/cafe.json",
+    "emotions/trust.json"
+  ]
+}

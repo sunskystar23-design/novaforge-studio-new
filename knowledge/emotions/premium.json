@@ -1,0 +1,23 @@
+{
+  "id": "emotion_premium",
+  "name": "Premium",
+  "description": "Aspirational emotional tone emphasizing exclusivity, quality, and high-value product perception.",
+  "keywords": [
+    "premium",
+    "exclusive",
+    "quality",
+    "aspirational",
+    "refined",
+    "elevated"
+  ],
+  "prompt_fragments": [
+    "premium high-value product mood",
+    "exclusive aspirational visual emotion",
+    "refined elevated product presentation"
+  ],
+  "related_modules": [
+    "styles/luxury.json",
+    "locations/studio.json",
+    "lighting/dramatic_softbox"
+  ]
+}
