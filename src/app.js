@@ -2848,17 +2848,42 @@ function renderCharacterEngineSelector() {
   `;
 }
 
-function renderSelectedProductContext(product) {
-  const normalizedProduct = normalizeProduct(product);
+function renderProductContextBar(savedProducts = []) {
+  const primaryProduct = savedProducts[0] ? normalizeProduct(savedProducts[0]) : null;
+  const productSummary = savedProducts.length === 1 ? '1 product selected' : `${savedProducts.length} products selected`;
+
+  if (!primaryProduct) {
+    return `
+      <section class="product-context-bar empty" aria-label="Product context bar">
+        <div class="product-context-summary">
+          <div class="product-context-thumb placeholder" aria-hidden="true">NF</div>
+          <div>
+            <span class="product-context-count">0 products selected</span>
+            <strong>No primary product loaded</strong>
+            <p>Return to Product Command Center to add product context.</p>
+          </div>
+        </div>
+        <a class="back-link back-button product-context-change" href="/novaforge-studio-new/">Change Products</a>
+      </section>
+    `;
+  }
 
   return `
-    <article class="studio-product-context-card">
-      <img alt="" src="${escapeHtml(normalizedProduct.image)}" />
-      <div>
-        <span>${escapeHtml(normalizedProduct.platform)}</span>
-        <strong>${escapeHtml(normalizedProduct.title)}</strong>
+    <section class="product-context-bar" aria-label="Product context bar">
+      <div class="product-context-summary">
+        <img class="product-context-thumb" alt="" src="${escapeHtml(primaryProduct.image)}" />
+        <div>
+          <span class="product-context-count">${escapeHtml(productSummary)}</span>
+          <strong>${escapeHtml(primaryProduct.title)}</strong>
+          <p>
+            <span>${escapeHtml(primaryProduct.platform)}</span>
+            <span aria-hidden="true">•</span>
+            <span>${escapeHtml(primaryProduct.price)}</span>
+          </p>
+        </div>
       </div>
-    </article>
+      <a class="back-link back-button product-context-change" href="/novaforge-studio-new/">Change Products</a>
+    </section>
   `;
 }
 
@@ -2984,17 +3009,13 @@ function renderDirectorPanel(savedProducts = []) {
   `;
 }
 
-function renderCreativeInputsPanel(savedProducts) {
-  const productContext = savedProducts.length > 0
-    ? savedProducts.map(renderSelectedProductContext).join('')
-    : '<p class="studio-empty-note">No selected products found. Return to Product Command Center to add product context.</p>';
-
+function renderCreativeInputsPanel() {
   return `
     <aside class="studio-panel creative-inputs-panel" aria-label="Creative Inputs">
       <div class="studio-panel-heading">
-        <span class="studio-kicker">Left Panel</span>
+        <span class="studio-kicker">Inputs</span>
         <h2>Creative Inputs</h2>
-        <p>Goal first. Search first. Library hidden.</p>
+        <p>Set the goal, expand keywords, and choose character direction.</p>
       </div>
       ${renderProjectGoalSelector()}
       ${renderCreativeSearchBar()}
@@ -3004,10 +3025,6 @@ function renderCreativeInputsPanel(savedProducts) {
         <div class="reference-placeholder-grid">
           ${creativeReferenceTypes.map(renderReferenceDropzonePlaceholder).join('')}
         </div>
-      </section>
-      <section class="studio-input-section">
-        <h3>Selected Product Context</h3>
-        <div class="studio-product-context-list">${productContext}</div>
       </section>
     </aside>
   `;
@@ -3059,65 +3076,18 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
 function renderCreativeStudioShell(savedProducts) {
   return `
-    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio V2">
+    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio">
       <div class="creative-studio-hero">
         <div>
-          <span class="studio-kicker">NOVAFORGE Creative Studio V2</span>
-          <h1>AI Creative Operating System</h1>
-          <p>Goal First. Prompt Last. Search First. Library Hidden. Less Forms. More Canvas.</p>
+          <span class="studio-kicker">Creative Workspace</span>
+          <h1>NOVAFORGE Creative Studio</h1>
+          <p>Goal first. Prompt last.</p>
         </div>
-        <span class="studio-status-pill">${savedProducts.length} selected product(s) loaded</span>
       </div>
       <div class="creative-studio-grid">
-        ${renderCreativeInputsPanel(savedProducts)}
+        ${renderCreativeInputsPanel()}
         ${renderCreativeCanvasPanel(savedProducts)}
         ${renderDirectorPanel(savedProducts)}
-      </div>
-    </section>
-  `;
-}
-
-
-function renderLoadedProductCard(product) {
-  const sourceUrl = product.sourceUrl || product.productUrl || '';
-  const sourceLink = sourceUrl
-    ? `<a class="source-url" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>`
-    : '<span class="source-url unavailable">No source URL available</span>';
-
-  return `
-    <article class="loaded-product-card">
-      <img alt="" src="${escapeHtml(product.image)}" />
-      <div>
-        <span class="platform-chip">${escapeHtml(product.platform)}</span>
-        <h3>${escapeHtml(product.title)}</h3>
-        <p>${escapeHtml(product.price)}</p>
-        ${sourceLink}
-      </div>
-    </article>
-  `;
-}
-
-function renderSelectedProductsLoadedSection(savedProducts) {
-  const emptyState = savedProducts.length === 0
-    ? '<p class="studio-empty-note">No selected products loaded. Return to Product Command Center to select products before planning content.</p>'
-    : '';
-
-  return `
-    <section class="selected-products-loaded-section" aria-label="Selected Products Loaded">
-      <div class="selected-products-loaded-heading">
-        <div>
-          <span class="studio-kicker">Section 1</span>
-          <h1>Selected Products Loaded</h1>
-          <p>Products passed from Product Command Center via existing localStorage/sessionStorage workflow.</p>
-        </div>
-        <div class="selected-products-loaded-actions">
-          <span class="studio-status-pill">${savedProducts.length} selected product(s)</span>
-          <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
-        </div>
-      </div>
-      ${emptyState}
-      <div class="loaded-products-grid">
-        ${savedProducts.map(renderLoadedProductCard).join('')}
       </div>
     </section>
   `;
@@ -3217,7 +3187,7 @@ function renderImageCreationWorkspace(savedProducts) {
           <h2>Image Creation</h2>
           <p class="source-label">Local prompt workspace only. No image API is connected yet.</p>
         </div>
-        <span>${savedProducts.length} selected product(s)</span>
+        <span>Secondary workspace</span>
       </div>
       ${workspaceNotice}
       <div class="image-creation-product-list">
@@ -3290,7 +3260,7 @@ function renderContentGeneratorLanding() {
 
   return `
     <main class="creative-studio-page">
-      ${renderSelectedProductsLoadedSection(savedProducts)}
+      ${renderProductContextBar(savedProducts)}
       ${renderCreativeStudioShell(savedProducts)}
       <section class="legacy-image-workspace" aria-label="Legacy Image Workspace">
         <div class="legacy-workspace-heading">
