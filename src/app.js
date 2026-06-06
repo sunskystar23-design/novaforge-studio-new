@@ -200,6 +200,8 @@ let creativeSearchQuery = '';
 let expandedKeywords = [];
 let selectedCreativeTags = [];
 let creativeSearchNotice = '';
+let projectGoal = 'Sell Product';
+let selectedConceptId = '';
 
 function platformImage(platform, title = 'Product Preview') {
   const colors = {
@@ -1822,6 +1824,7 @@ function expandCreativeKeywords(query) {
 function expandCreativeSearchIdeas() {
   expandedKeywords = expandCreativeKeywords(creativeSearchQuery);
   selectedCreativeTags = selectedCreativeTags.filter((selectedTag) => expandedKeywords.includes(selectedTag));
+  selectedConceptId = '';
   creativeSearchNotice = creativeSearchQuery.trim()
     ? `Expanded ${expandedKeywords.length} creative direction tag(s) from your search.`
     : 'No search text yet, so NOVAFORGE suggested a balanced creative starter set.';
@@ -1835,6 +1838,7 @@ function toggleCreativeTag(tag) {
     selectedCreativeTags = [...selectedCreativeTags, tag];
   }
 
+  selectedConceptId = '';
   creativeSearchNotice = selectedCreativeTags.length > 0
     ? `${selectedCreativeTags.length} creative tag(s) selected for AI Director guidance.`
     : 'All creative tags deselected. Select tags to shape the mock direction.';
@@ -1857,7 +1861,30 @@ function getSelectedTagsSummary() {
   return selectedCreativeTags.length > 0 ? selectedCreativeTags.join(', ') : expandedKeywords.slice(0, 3).join(', ') || 'cinematic product direction';
 }
 
-function getCreativeDirectorSections() {
+function getCreativeDirectorSections(activeConcept) {
+  if (activeConcept) {
+    const tagSummary = getSelectedTagsSummary();
+
+    return [
+      {
+        title: 'Recommended Direction',
+        body: `Selected concept: ${activeConcept.title}. Recommended next step: review storyboard direction and confirm the first scene hook.`,
+      },
+      {
+        title: 'Alternative Concepts',
+        body: `If ${activeConcept.title} feels too narrow, compare it against ${tagSummary} and generate a second local mock direction before writing prompts.`,
+      },
+      {
+        title: 'Creative Suggestions',
+        body: `Use ${activeConcept.style}, ${activeConcept.audioDirection}, and ${activeConcept.cameraDirection} as the creative guardrails for this canvas.`,
+      },
+      {
+        title: 'Trend Insights',
+        body: `Mock insight: ${activeConcept.contentFormat} concepts land better when the story angle is visible before the product proof sequence.`,
+      },
+    ];
+  }
+
   if (expandedKeywords.length === 0) return directorPanelSections;
 
   const tagSummary = getSelectedTagsSummary();
@@ -1883,43 +1910,146 @@ function getCreativeDirectorSections() {
   ];
 }
 
-function getCreativeStudioConcepts() {
-  if (selectedCreativeTags.includes('Podcast')) {
-    return [
-      {
-        title: 'Podcast Story Concept',
-        description: 'A voice-led narrative format built around conversation, product context, and a long-form storytelling rhythm.',
-        confidence: '91%',
-      },
-      ...creativeStudioConcepts.slice(0, 2),
-    ];
+function createMockConcepts({ selectedProducts: products = [], selectedCreativeTags: tags = [], creativeSearchQuery: query = '', projectGoal: goal = 'Sell Product' } = {}) {
+  const normalizedProducts = products.map((product) => normalizeProduct(product));
+  const selectedProduct = normalizedProducts[0];
+  const productTitle = selectedProduct?.title || 'selected product';
+  const searchContext = query.trim() || tags.join(', ') || 'creative direction';
+  const candidateConcepts = [];
+  const hasTag = (tagName) => tags.some((tag) => tag.toLowerCase().includes(tagName.toLowerCase()));
+  const addConcept = (concept) => {
+    if (!candidateConcepts.some((existingConcept) => existingConcept.id === concept.id)) candidateConcepts.push(concept);
+  };
+
+  if (hasTag('ASMR')) {
+    addConcept({
+      id: 'asmr-product-film',
+      title: 'ASMR Product Film',
+      description: `A sensory-first film for ${productTitle}, using tactile detail and soft sound to make the product feel close and desirable.`,
+      confidenceScore: '92%',
+      style: 'Sensory close-up minimalism',
+      emotion: 'Calm curiosity',
+      contentFormat: 'Short product film',
+      audioDirection: 'Soft sound design, texture foley, low ambient bed',
+      cameraDirection: 'Macro close-ups, slow push-ins, controlled hand movement',
+      storyAngle: `Turn ${productTitle} into a quiet sensory ritual connected to ${searchContext}.`,
+    });
   }
 
-  return creativeStudioConcepts.map((concept) => {
-    if (selectedCreativeTags.includes('ASMR') && concept.title === 'ASMR Product Film') {
-      return {
-        ...concept,
-        description: 'Selected ASMR tags sharpen this into a slow, sensory product film with texture close-ups and soft sound design.',
-      };
-    }
+  if (hasTag('Luxury') || hasTag('Premium')) {
+    addConcept({
+      id: 'luxury-documentary',
+      title: 'Luxury Documentary',
+      description: `A premium documentary-style concept that frames ${productTitle} as refined, intentional, and emotionally valuable.`,
+      confidenceScore: '94%',
+      style: 'Premium editorial documentary',
+      emotion: 'Trust, desire, quiet confidence',
+      contentFormat: 'Cinematic product story',
+      audioDirection: 'Warm piano, soft room tone, restrained transitions',
+      cameraDirection: 'Slow hero frames, detail inserts, elegant locked shots',
+      storyAngle: `Show why ${productTitle} deserves attention before asking for action.`,
+    });
+  }
 
-    if (selectedCreativeTags.includes('Luxury') && concept.title === 'Luxury Documentary') {
-      return {
-        ...concept,
-        description: 'Selected luxury tags push this toward premium lighting, editorial pacing, and a high-end product film tone.',
-      };
-    }
+  if (hasTag('Podcast')) {
+    addConcept({
+      id: 'podcast-story-concept',
+      title: 'Podcast Story Concept',
+      description: `A voice-led concept that turns ${productTitle} into a discussion topic with narrative hooks and conversation pacing.`,
+      confidenceScore: '91%',
+      style: 'Editorial audio-led storytelling',
+      emotion: 'Credible, thoughtful, conversational',
+      contentFormat: 'Podcast segment / interview opener',
+      audioDirection: 'Clean voice direction, subtle intro bed, intimate pacing',
+      cameraDirection: 'Static medium framing with cutaway product detail shots',
+      storyAngle: `Introduce ${productTitle} through a human problem, then let conversation reveal the value.`,
+    });
+  }
 
-    return concept;
+  if (hasTag('Viral')) {
+    addConcept({
+      id: 'viral-short-form-hook',
+      title: 'Viral Short-Form Hook',
+      description: `A fast hook-driven concept that makes ${productTitle} instantly understandable and shareable in the first seconds.`,
+      confidenceScore: '88%',
+      style: 'Fast social-first energy',
+      emotion: 'Surprise, momentum, urgency',
+      contentFormat: 'Short-form social video',
+      audioDirection: 'High-energy beat, quick cuts, hook emphasis',
+      cameraDirection: 'Fast punch-ins, snap transitions, creator POV shots',
+      storyAngle: `Open with the strongest reason ${productTitle} matters, then prove it visually.`,
+    });
+  }
+
+  [
+    {
+      id: 'cinematic-product-story',
+      title: 'Cinematic Product Story',
+      description: `A polished story arc for ${productTitle} that turns product proof into an emotional creative journey.`,
+      confidenceScore: '87%',
+      style: 'Cinematic lifestyle storytelling',
+      emotion: 'Trust and aspiration',
+      contentFormat: 'Brand product film',
+      audioDirection: 'Soft cinematic bed with natural product moments',
+      cameraDirection: 'Wide establishing shot, medium creator moment, close-up proof',
+      storyAngle: `Connect ${productTitle} to the audience goal: ${goal}.`,
+    },
+    {
+      id: 'premium-social-campaign',
+      title: 'Premium Social Campaign',
+      description: `A social-first campaign that keeps ${productTitle} premium without making the layout feel like a corporate ad.`,
+      confidenceScore: '84%',
+      style: 'Premium social editorial',
+      emotion: 'Desire and confidence',
+      contentFormat: 'Social campaign sequence',
+      audioDirection: 'Modern ambient pulse with clean CTA spacing',
+      cameraDirection: 'Hero shot, feature highlight, creator proof, final CTA',
+      storyAngle: `Use ${searchContext} to make the product feel culturally relevant.`,
+    },
+    {
+      id: 'educational-product-breakdown',
+      title: 'Educational Product Breakdown',
+      description: `A clear educational concept that explains ${productTitle} through benefits, use cases, and simple visual proof.`,
+      confidenceScore: '82%',
+      style: 'Clean instructional editorial',
+      emotion: 'Clarity and trust',
+      contentFormat: 'Educational product explainer',
+      audioDirection: 'Calm voiceover, light UI cues, simple sound accents',
+      cameraDirection: 'Overhead demonstration, feature close-ups, comparison frames',
+      storyAngle: `Teach the viewer why ${productTitle} fits their goal before selling.`,
+    },
+  ].forEach(addConcept);
+
+  return candidateConcepts.slice(0, 3);
+}
+
+function getCreativeStudioConcepts(savedProducts = []) {
+  return createMockConcepts({
+    selectedProducts: savedProducts,
+    selectedCreativeTags,
+    creativeSearchQuery,
+    projectGoal,
   });
 }
+
+function getActiveConcept(savedProducts = []) {
+  const concepts = getCreativeStudioConcepts(savedProducts);
+  return concepts.find((concept) => concept.id === selectedConceptId) || concepts[0];
+}
+
+function selectCreativeConcept(conceptId) {
+  selectedConceptId = conceptId;
+  creativeSearchNotice = 'Concept selected. Creative Blueprint and AI Director guidance updated.';
+  render();
+}
+
 
 function renderProjectGoalSelector() {
   return `
     <label class="studio-field">
       <span>Project Goal</span>
-      <select aria-label="Project Goal Selector">
-        ${creativeProjectGoals.map((goal) => `<option>${escapeHtml(goal)}</option>`).join('')}
+      <select aria-label="Project Goal Selector" id="project-goal-selector">
+        ${creativeProjectGoals.map((goal) => `<option value="${escapeHtml(goal)}" ${goal === projectGoal ? 'selected' : ''}>${escapeHtml(goal)}</option>`).join('')}
       </select>
     </label>
   `;
@@ -1979,30 +2109,52 @@ function renderSelectedProductContext(product) {
 }
 
 function renderConceptCard(concept) {
+  const conceptSelected = selectedConceptId === concept.id;
+
   return `
-    <article class="concept-card">
+    <article class="concept-card ${conceptSelected ? 'selected' : ''}">
       <div>
         <span class="studio-kicker">Concept</span>
         <h3>${escapeHtml(concept.title)}</h3>
         <p>${escapeHtml(concept.description)}</p>
       </div>
+      <dl class="concept-meta">
+        <div><dt>Style</dt><dd>${escapeHtml(concept.style)}</dd></div>
+        <div><dt>Format</dt><dd>${escapeHtml(concept.contentFormat)}</dd></div>
+      </dl>
       <div class="concept-card-footer">
-        <span>Confidence score ${escapeHtml(concept.confidence)}</span>
-        <button type="button">Select</button>
+        <span>Confidence score ${escapeHtml(concept.confidenceScore)}</span>
+        <button data-select-concept-id="${escapeHtml(concept.id)}" type="button">${conceptSelected ? 'Selected' : 'Select'}</button>
       </div>
     </article>
   `;
 }
 
-function renderBlueprintPanel() {
+function renderBlueprintPanel(savedProducts = []) {
+  const selectedProduct = savedProducts[0] ? normalizeProduct(savedProducts[0]) : null;
+  const activeConcept = getActiveConcept(savedProducts);
+  const blueprintItems = [
+    { label: 'Goal', value: projectGoal },
+    { label: 'Selected Product', value: selectedProduct?.title || 'No selected product yet' },
+    { label: 'Concept', value: activeConcept.title },
+    { label: 'Audience', value: 'Creative buyers who need a clear reason to care before conversion.' },
+    { label: 'Style', value: activeConcept.style },
+    { label: 'Emotion', value: activeConcept.emotion },
+    { label: 'Content Format', value: activeConcept.contentFormat },
+    { label: 'Audio Direction', value: activeConcept.audioDirection },
+    { label: 'Camera Direction', value: activeConcept.cameraDirection },
+    { label: 'Story Angle', value: activeConcept.storyAngle },
+  ];
+
   return `
     <section class="studio-card blueprint-panel">
       <div class="studio-section-heading">
         <span class="studio-kicker">Creative Blueprint Placeholder</span>
         <h2>Creative Blueprint</h2>
+        <p>Mock blueprint updates from the selected concept and current creative tags.</p>
       </div>
       <div class="blueprint-grid">
-        ${creativeBlueprintItems.map((item) => `
+        ${blueprintItems.map((item) => `
           <article>
             <span>${escapeHtml(item.label)}</span>
             <p>${escapeHtml(item.value)}</p>
@@ -2030,7 +2182,9 @@ function renderStoryboardCard(scene) {
   `;
 }
 
-function renderDirectorPanel() {
+function renderDirectorPanel(savedProducts = []) {
+  const activeConcept = selectedConceptId ? getActiveConcept(savedProducts) : null;
+
   return `
     <aside class="studio-panel director-panel" aria-label="AI Director Panel">
       <div class="studio-panel-heading">
@@ -2043,7 +2197,7 @@ function renderDirectorPanel() {
         <span>Living Creative Intelligence standby</span>
       </div>
       <div class="director-section-list">
-        ${getCreativeDirectorSections().map((section) => `
+        ${getCreativeDirectorSections(activeConcept).map((section) => `
           <section class="director-section">
             <h3>${escapeHtml(section.title)}</h3>
             <p>${escapeHtml(section.body)}</p>
@@ -2082,7 +2236,9 @@ function renderCreativeInputsPanel(savedProducts) {
   `;
 }
 
-function renderCreativeCanvasPanel() {
+function renderCreativeCanvasPanel(savedProducts = []) {
+  const concepts = getCreativeStudioConcepts(savedProducts);
+
   return `
     <section class="studio-canvas-panel" aria-label="Creative Canvas">
       <section class="studio-card concept-board">
@@ -2092,10 +2248,10 @@ function renderCreativeCanvasPanel() {
           <p>Three possible directions before prompts are written.</p>
         </div>
         <div class="concept-card-grid">
-          ${getCreativeStudioConcepts().map(renderConceptCard).join('')}
+          ${concepts.map(renderConceptCard).join('')}
         </div>
       </section>
-      ${renderBlueprintPanel()}
+      ${renderBlueprintPanel(savedProducts)}
       <section class="studio-card storyboard-panel">
         <div class="studio-section-heading">
           <span class="studio-kicker">Storyboard Placeholder</span>
@@ -2122,8 +2278,8 @@ function renderCreativeStudioShell(savedProducts) {
       </div>
       <div class="creative-studio-grid">
         ${renderCreativeInputsPanel(savedProducts)}
-        ${renderCreativeCanvasPanel()}
-        ${renderDirectorPanel()}
+        ${renderCreativeCanvasPanel(savedProducts)}
+        ${renderDirectorPanel(savedProducts)}
       </div>
     </section>
   `;
@@ -2314,11 +2470,22 @@ function renderContentGeneratorLanding() {
 function attachContentGeneratorEvents() {
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
 
+  document.querySelector('#project-goal-selector')?.addEventListener('change', (event) => {
+    projectGoal = event.target.value;
+    selectedConceptId = '';
+    creativeSearchNotice = 'Project goal updated. Concept Board and Creative Blueprint refreshed.';
+    render();
+  });
+
   document.querySelector('#creative-search-input')?.addEventListener('input', (event) => {
     creativeSearchQuery = event.target.value;
   });
 
   document.querySelector('#expand-creative-ideas')?.addEventListener('click', expandCreativeSearchIdeas);
+
+  document.querySelectorAll('[data-select-concept-id]').forEach((conceptButton) => {
+    conceptButton.addEventListener('click', () => selectCreativeConcept(conceptButton.dataset.selectConceptId));
+  });
 
   document.querySelectorAll('[data-creative-tag]').forEach((tagButton) => {
     tagButton.addEventListener('click', () => toggleCreativeTag(tagButton.dataset.creativeTag));
