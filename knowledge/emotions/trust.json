@@ -1,0 +1,23 @@
+{
+  "id": "emotion_trust",
+  "name": "Trust",
+  "description": "Calm, credible emotional tone that builds confidence in product quality, proof, and reliability.",
+  "keywords": [
+    "trust",
+    "credible",
+    "reliable",
+    "proof",
+    "confidence",
+    "safe"
+  ],
+  "prompt_fragments": [
+    "trust-building product proof moment",
+    "calm credible visual tone",
+    "reliable product demonstration with clear benefits"
+  ],
+  "related_modules": [
+    "characters/expert.json",
+    "characters/family.json",
+    "styles/minimal.json"
+  ]
+}
