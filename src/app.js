@@ -2412,7 +2412,7 @@ function renderPromptPlanBuilder() {
     : '';
 
   return `
-    <details class="prompt-plan-placeholder prompt-plan-builder compact-prompt-plan" aria-label="Prompt Plan Builder" open>
+    <details class="prompt-plan-placeholder prompt-plan-builder compact-prompt-plan" id="prompt-plan-builder" aria-label="Prompt Plan Builder" open>
       <summary class="prompt-plan-summary-toggle">
         <span class="studio-kicker">Prompt Plan Builder</span>
         <strong>Prompt Plan</strong>
@@ -2780,7 +2780,7 @@ function createStoryboardFromCurrentConcept(regenerate = false) {
 
 function renderProjectGoalSelector() {
   return `
-    <label class="studio-field">
+    <label class="studio-field" id="creative-project-goal-anchor">
       <span>Project Goal</span>
       <select aria-label="Project Goal Selector" id="project-goal-selector">
         ${creativeProjectGoals.map((goal) => `<option value="${escapeHtml(goal)}" ${goal === projectGoal ? 'selected' : ''}>${escapeHtml(goal)}</option>`).join('')}
@@ -2804,7 +2804,7 @@ function renderCreativeSearchBar() {
   const notice = creativeSearchNotice ? `<p class="creative-search-notice">${escapeHtml(creativeSearchNotice)}</p>` : '';
 
   return `
-    <section class="creative-search-module" aria-label="Creative Search and Keyword Expansion">
+    <section class="creative-search-module" id="creative-inputs-anchor" aria-label="Creative Search and Keyword Expansion">
       <label class="studio-field creative-search-field">
         <span>Creative Search</span>
         <input id="creative-search-input" type="search" placeholder="Describe the creative direction, e.g. Luxury ASMR Vanilla Campaign" value="${escapeHtml(creativeSearchQuery)}" />
@@ -2850,7 +2850,7 @@ function renderCharacterProfilePanel() {
 
 function renderCharacterEngineSelector() {
   return `
-    <section class="studio-input-section character-engine-section" aria-label="Character Engine">
+    <section class="studio-input-section character-engine-section" id="character-engine-anchor" aria-label="Character Engine">
       <h3>Character Engine</h3>
       <div class="character-selector-grid">
         <label class="studio-field">
@@ -2883,7 +2883,7 @@ function renderProductContextBar(savedProducts = []) {
 
   if (!primaryProduct) {
     return `
-      <section class="product-context-bar empty" aria-label="Product context bar">
+      <section class="product-context-bar empty" id="product-context-bar" aria-label="Product context bar">
         <div class="product-context-summary">
           <div class="product-context-thumb placeholder" aria-hidden="true">NF</div>
           <div>
@@ -2898,7 +2898,7 @@ function renderProductContextBar(savedProducts = []) {
   }
 
   return `
-    <section class="product-context-bar" aria-label="Product context bar">
+    <section class="product-context-bar" id="product-context-bar" aria-label="Product context bar">
       <div class="product-context-summary">
         <img class="product-context-thumb" alt="" src="${escapeHtml(primaryProduct.image)}" />
         <div>
@@ -2916,9 +2916,42 @@ function renderProductContextBar(savedProducts = []) {
   `;
 }
 
-function getCreativeCanvasNextStep() {
+function getCreativeWorkflowSteps(savedProducts = []) {
+  const stepDefinitions = [
+    { id: 'goal', number: 1, label: 'Goal', complete: Boolean(projectGoal), target: 'creative-project-goal-anchor' },
+    { id: 'product', number: 2, label: 'Product', complete: savedProducts.length > 0, target: 'product-context-bar' },
+    { id: 'character', number: 3, label: 'Character', complete: Boolean(selectedCharacterId), target: 'character-engine-anchor' },
+    { id: 'concept', number: 4, label: 'Concept', complete: Boolean(selectedConceptId), target: 'concept-board-anchor' },
+    { id: 'storyboard', number: 5, label: 'Storyboard', complete: generatedStoryboardScenes.length > 0, target: 'storyboard-system-anchor' },
+    { id: 'prompt-plan', number: 6, label: 'Prompt Plan', complete: promptPlanBlocks.length > 0, target: promptPlanBlocks.length > 0 ? 'prompt-plan-builder' : 'ai-director-panel' },
+    { id: 'generate', number: 7, label: 'Generate', complete: false, target: 'legacy-image-workspace' },
+  ];
+  const activeIndex = stepDefinitions.findIndex((step) => !step.complete);
+
+  return stepDefinitions.map((step, index) => {
+    const isGeneratePlaceholder = step.id === 'generate';
+    const status = index === activeIndex && !isGeneratePlaceholder
+      ? 'active'
+      : step.complete
+        ? 'complete'
+        : 'pending';
+
+    return { ...step, status };
+  });
+}
+
+function getActiveCreativeWorkflowStep(savedProducts = []) {
+  const steps = getCreativeWorkflowSteps(savedProducts);
+  return steps.find((step) => step.status === 'active') || steps.find((step) => step.id === 'generate') || steps[steps.length - 1];
+}
+
+function getCreativeCanvasNextStep(savedProducts = []) {
   const hasCreativeSearch = creativeSearchQuery.trim().length > 0;
   const hasCreativeTags = selectedCreativeTags.length > 0;
+
+  if (savedProducts.length === 0) {
+    return 'Add or change products from Product Command Center before planning creative.';
+  }
 
   if (!hasCreativeSearch && !hasCreativeTags) {
     return 'Start by describing the creative direction or expand ideas.';
@@ -2932,15 +2965,44 @@ function getCreativeCanvasNextStep() {
     return 'Generate or review the storyboard.';
   }
 
-  return 'Review AI Director suggestions or prepare a prompt plan.';
+  if (promptPlanBlocks.length === 0) {
+    return 'Review AI Director suggestions or prepare a prompt plan.';
+  }
+
+  return 'Review generated prompt directions, then use the secondary Generate workspace when ready.';
 }
 
-function renderCreativeCanvasNextStepStrip() {
+function renderCreativeCanvasNextStepStrip(savedProducts = []) {
+  const activeStep = getActiveCreativeWorkflowStep(savedProducts);
+
   return `
     <section class="creative-next-step-strip" aria-label="Creative Canvas Next Step">
-      <span>Next Step</span>
-      <p>${escapeHtml(getCreativeCanvasNextStep())}</p>
+      <span>Active Step: ${escapeHtml(activeStep.label)}</span>
+      <p>${escapeHtml(getCreativeCanvasNextStep(savedProducts))}</p>
     </section>
+  `;
+}
+
+function renderCreativeStepFlowBar(savedProducts = []) {
+  const steps = getCreativeWorkflowSteps(savedProducts);
+
+  return `
+    <nav class="creative-step-flow-bar" aria-label="Creative Studio Step Flow">
+      ${steps.map((step) => `
+        <button
+          class="creative-step-pill ${escapeHtml(step.status)}"
+          type="button"
+          data-creative-step="${escapeHtml(step.id)}"
+          data-step-status="${escapeHtml(step.status)}"
+          data-step-target="${escapeHtml(step.target)}"
+          aria-label="Step ${step.number}: ${escapeHtml(step.label)} is ${escapeHtml(step.status)}"
+        >
+          <span class="step-number">${step.number}</span>
+          <span class="step-label">${escapeHtml(step.label)}</span>
+          <span class="step-state">${escapeHtml(step.status)}</span>
+        </button>
+      `).join('')}
+    </nav>
   `;
 }
 
@@ -3053,7 +3115,7 @@ function renderDirectorPanel(savedProducts = []) {
   });
 
   return `
-    <aside class="studio-panel director-panel" aria-label="AI Director Panel">
+    <aside class="studio-panel director-panel" id="ai-director-panel" aria-label="AI Director Panel">
       <div class="studio-panel-heading">
         <span class="studio-kicker">AI Director Engine</span>
         <h2>AI Director Analysis</h2>
@@ -3126,8 +3188,9 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
   return `
     <section class="studio-canvas-panel" aria-label="Creative Canvas">
-      ${renderCreativeCanvasNextStepStrip()}
-      <section class="studio-card concept-board">
+      ${renderCreativeCanvasNextStepStrip(savedProducts)}
+      ${renderCreativeStepFlowBar(savedProducts)}
+      <section class="studio-card concept-board" id="concept-board-anchor">
         <div class="studio-section-heading">
           <span class="studio-kicker">Creative Canvas</span>
           <h2>Concept Board</h2>
@@ -3138,7 +3201,7 @@ function renderCreativeCanvasPanel(savedProducts = []) {
         </div>
       </section>
       ${renderBlueprintPanel(savedProducts)}
-      <section class="studio-card storyboard-panel">
+      <section class="studio-card storyboard-panel" id="storyboard-system-anchor">
         <div class="studio-section-heading storyboard-heading">
           <div>
             <span class="studio-kicker">Storyboard Generator Mock</span>
@@ -3345,7 +3408,7 @@ function renderContentGeneratorLanding() {
     <main class="creative-studio-page">
       ${renderProductContextBar(savedProducts)}
       ${renderCreativeStudioShell(savedProducts)}
-      <section class="legacy-image-workspace" aria-label="Legacy Image Workspace">
+      <section class="legacy-image-workspace" id="legacy-image-workspace" aria-label="Legacy Image Workspace">
         <div class="legacy-workspace-heading">
           <span class="studio-kicker">Legacy Image Workspace</span>
           <h2>Legacy Image Workspace</h2>
@@ -3397,6 +3460,18 @@ function attachContentGeneratorEvents() {
 
   document.querySelector('#generate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(false));
   document.querySelector('#regenerate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(true));
+
+  document.querySelectorAll('[data-step-target]').forEach((stepButton) => {
+    stepButton.addEventListener('click', () => {
+      const targetId = stepButton.dataset.stepTarget;
+      const target = targetId ? document.getElementById(targetId) : null;
+      if (!target) return;
+
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+      target.focus({ preventScroll: true });
+    });
+  });
 
   document.querySelectorAll('[data-director-action-id]').forEach((actionButton) => {
     actionButton.addEventListener('click', () => handleDirectorAction(actionButton.dataset.directorActionId));

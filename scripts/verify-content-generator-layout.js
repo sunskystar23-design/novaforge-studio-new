@@ -15,6 +15,15 @@ assert.doesNotMatch(app, /Selected Products Loaded/, 'Large Selected Products Lo
 assert.doesNotMatch(app, /selected-products-loaded-section/, 'Large selected products section class should not be referenced.');
 assert.match(app, /<h1>NOVAFORGE Creative Studio<\/h1>/, 'Compact Creative Studio title should render.');
 assert.match(app, /renderCreativeCanvasNextStepStrip/, 'Next Step strip should render in Creative Canvas.');
+assert.match(app, /renderCreativeStepFlowBar/, 'Step Flow bar should render in Creative Canvas.');
+['Goal', 'Product', 'Character', 'Concept', 'Storyboard', 'Prompt Plan', 'Generate'].forEach((label) => {
+  assert.match(app, new RegExp(`label: '${label}'|label: "${label}"|>${label}<`), `Step Flow label ${label} should exist.`);
+});
+assert.match(app, /data-step-status/, 'Step Flow state data attribute should exist.');
+assert.match(app, /creative-step-pill \${escapeHtml\(step.status\)}/, 'Step Flow state class should exist.');
+assert.match(app, /data-step-target/, 'Step navigation targets should exist.');
+assert.match(app, /scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/, 'Step navigation scroll handler should exist.');
+assert.match(app, /Active Step:/, 'Next Step strip should include the active step label.');
 assert.match(app, /Start by describing the creative direction or expand ideas\./, 'Next Step strip should include the starting guidance.');
 assert.match(app, /Selected Direction/, 'Concept selected badge text should exist.');
 assert.match(app, /Storyboard will appear after concept selection\./, 'Storyboard compact empty state should render.');
