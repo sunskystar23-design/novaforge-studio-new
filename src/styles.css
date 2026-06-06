@@ -723,3 +723,132 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.image-workspace-section {
+  border: 1px solid rgba(95, 118, 160, 0.18);
+  border-radius: 28px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 48px rgba(45, 73, 118, 0.1);
+}
+
+.image-creation-product-list,
+.prompt-grid,
+.placeholder-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.image-creation-product,
+.prompt-card,
+.placeholder-image-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #dde6fb;
+  border-radius: 20px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.image-creation-product {
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+}
+
+.image-creation-product img {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.image-creation-product button {
+  grid-column: 1 / -1;
+}
+
+.workspace-action-button,
+.prompt-toggle {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: #3b4cff;
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 950;
+}
+
+.workspace-action-button.secondary,
+.prompt-toggle {
+  background: #0f766e;
+}
+
+.workspace-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.prompt-card.selected,
+.placeholder-image-card.selected {
+  border-color: rgba(15, 118, 110, 0.45);
+  background: #f0fdfa;
+}
+
+.prompt-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.prompt-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.prompt-meta div {
+  display: grid;
+  gap: 3px;
+}
+
+.prompt-meta dt {
+  color: #7b869a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prompt-meta dd {
+  margin: 0;
+  color: #172033;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.prompt-card p,
+.placeholder-image-card p,
+.placeholder-image-card small {
+  color: #647089;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.placeholder-image-art {
+  display: grid;
+  min-height: 170px;
+  place-items: center;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.75), transparent 34%),
+    linear-gradient(135deg, #6677ff 0%, #0f766e 100%);
+  color: #ffffff;
+  padding: 18px;
+  text-align: center;
+}
+
+.placeholder-image-art span {
+  font-size: 1.05rem;
+  font-weight: 950;
+}

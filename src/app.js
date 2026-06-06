@@ -1,5 +1,6 @@
 const maxSelectedProducts = 10;
 const productStorageKey = 'selectedProducts';
+const imageWorkspaceStorageKey = 'contentGeneratorImageWorkspace';
 const platformOptions = ['All Platforms', 'TikTok', 'Shopee', 'Lazada'];
 const targetOptions = ['All', 'High Commission', 'High Profit', 'Best Seller', 'Trending', 'New Arrival'];
 const csvImportColumns = ['platform', 'target', 'title', 'price', 'commission', 'sales', 'image_url', 'product_url'];
@@ -30,6 +31,7 @@ let supabaseSourceError = '';
 let supabaseConfigLoaded = false;
 let supabaseConfigError = '';
 let csvImportState = createCsvImportState();
+let imageWorkspaceState = readImageWorkspaceState();
 let selectedProducts = readSelectedProducts();
 
 function platformImage(platform, title = 'Product Preview') {
@@ -709,6 +711,117 @@ function dedupeProducts(products) {
     .slice(0, maxSelectedProducts);
 }
 
+
+const imagePromptCategories = [
+  { category: 'Hero Product Shot', visualStyle: 'clean studio lighting with premium e-commerce composition' },
+  { category: 'Lifestyle Scene', visualStyle: 'natural real-life environment with aspirational product use' },
+  { category: 'Premium Advertising Visual', visualStyle: 'luxury campaign lighting with polished brand layout' },
+  { category: 'Close-up Detail', visualStyle: 'macro detail focus with crisp texture and feature emphasis' },
+  { category: 'UGC Creator Style', visualStyle: 'authentic creator handheld framing with casual social proof' },
+  { category: 'Social Media Square Post', visualStyle: 'bold square social layout with readable product-first framing' },
+  { category: 'Feature Highlight', visualStyle: 'annotated feature callouts with clear benefit-focused composition' },
+  { category: 'Before/After or Comparison', visualStyle: 'split-screen comparison with strong visual contrast' },
+  { category: 'Promotional Banner', visualStyle: 'wide promotional graphic with offer-ready negative space' },
+  { category: 'Conversion Ad', visualStyle: 'direct-response ad visual with persuasive product placement' },
+];
+
+function createImageWorkspaceState(overrides = {}) {
+  return {
+    prompts: [],
+    images: [],
+    ...overrides,
+  };
+}
+
+function readImageWorkspaceState() {
+  try {
+    const savedState = JSON.parse(localStorage.getItem(imageWorkspaceStorageKey) || '{}');
+    return createImageWorkspaceState({
+      prompts: Array.isArray(savedState.prompts) ? savedState.prompts : [],
+      images: Array.isArray(savedState.images) ? savedState.images : [],
+    });
+  } catch {
+    return createImageWorkspaceState();
+  }
+}
+
+function saveImageWorkspaceState() {
+  localStorage.setItem(imageWorkspaceStorageKey, JSON.stringify(imageWorkspaceState));
+}
+
+function promptProductKey(product) {
+  return productSelectionKey(normalizeProduct(product));
+}
+
+function getProductTarget(product) {
+  const normalizedProduct = normalizeProduct(product);
+  const tags = Array.isArray(normalizedProduct.targetTags) ? normalizedProduct.targetTags : [];
+  return tags.length > 0 ? tags.join(', ') : 'Content-ready product buyer';
+}
+
+function createImagePrompt(product, categoryConfig, index) {
+  const normalizedProduct = normalizeProduct(product);
+  const productKey = promptProductKey(normalizedProduct);
+  const target = getProductTarget(normalizedProduct);
+  const categoryNumber = index + 1;
+  const promptText = `${categoryConfig.category} for ${normalizedProduct.title} on ${normalizedProduct.platform}. Show price ${normalizedProduct.price}, speak to ${target}, and use ${categoryConfig.visualStyle}.`;
+
+  return {
+    id: `${productKey}-prompt-${categoryNumber}`,
+    productId: productKey,
+    productTitle: normalizedProduct.title,
+    platform: normalizedProduct.platform,
+    target,
+    price: normalizedProduct.price,
+    category: categoryConfig.category,
+    visualStyle: categoryConfig.visualStyle,
+    promptText,
+    selected: false,
+  };
+}
+
+function generateImagePromptsForProduct(product) {
+  const productKey = promptProductKey(product);
+  const existingOtherPrompts = imageWorkspaceState.prompts.filter((prompt) => prompt.productId !== productKey);
+  const generatedPrompts = imagePromptCategories.map((categoryConfig, index) => createImagePrompt(product, categoryConfig, index));
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    prompts: [...existingOtherPrompts, ...generatedPrompts],
+    images: imageWorkspaceState.images.filter((image) => image.productId !== productKey),
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
+function toggleImagePrompt(promptId) {
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    prompts: imageWorkspaceState.prompts.map((prompt) => (
+      prompt.id === promptId ? { ...prompt, selected: !prompt.selected } : prompt
+    )),
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
+function createPlaceholderImagesFromSelectedPrompts() {
+  const selectedPrompts = imageWorkspaceState.prompts.filter((prompt) => prompt.selected);
+  imageWorkspaceState = createImageWorkspaceState({
+    ...imageWorkspaceState,
+    images: selectedPrompts.map((prompt) => ({
+      id: `${prompt.id}-placeholder-image`,
+      promptId: prompt.id,
+      productId: prompt.productId,
+      productTitle: prompt.productTitle,
+      category: prompt.category,
+      promptPreview: prompt.promptText,
+      selected: prompt.selected,
+    })),
+  });
+  saveImageWorkspaceState();
+  render();
+}
+
 function readProductsFromStorage(storage) {
   try {
     const savedProducts = JSON.parse(storage.getItem(productStorageKey) || '[]');
@@ -1217,23 +1330,124 @@ function renderProductCommandCenter() {
   `;
 }
 
+function renderContentProductCard(product) {
+  return `
+    <article class="content-product-card">
+      <img alt="" src="${escapeHtml(product.image)}" />
+      <div>
+        <span class="platform-chip">${escapeHtml(product.platform)}</span>
+        <h3>${escapeHtml(product.title)}</h3>
+        <p>${escapeHtml(product.price)}</p>
+        <a class="source-url" href="${escapeHtml(product.sourceUrl)}" target="_blank" rel="noreferrer">product_url: ${escapeHtml(product.sourceUrl)}</a>
+        <button class="workspace-action-button" data-generate-prompts-product-id="${escapeHtml(promptProductKey(product))}" type="button">Generate Image Prompts</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderGeneratedPromptCard(prompt) {
+  return `
+    <article class="prompt-card ${prompt.selected ? 'selected' : ''}">
+      <div class="prompt-card-header">
+        <span class="platform-chip">${escapeHtml(prompt.category)}</span>
+        <button class="prompt-toggle" data-toggle-prompt-id="${escapeHtml(prompt.id)}" type="button">
+          ${prompt.selected ? 'Selected' : 'Mark as Selected'}
+        </button>
+      </div>
+      <h3>${escapeHtml(prompt.productTitle)}</h3>
+      <dl class="prompt-meta">
+        <div><dt>Platform</dt><dd>${escapeHtml(prompt.platform)}</dd></div>
+        <div><dt>Target</dt><dd>${escapeHtml(prompt.target)}</dd></div>
+        <div><dt>Price</dt><dd>${escapeHtml(prompt.price)}</dd></div>
+        <div><dt>Visual Style</dt><dd>${escapeHtml(prompt.visualStyle)}</dd></div>
+      </dl>
+      <p>${escapeHtml(prompt.promptText)}</p>
+    </article>
+  `;
+}
+
+function renderPlaceholderImageCard(image) {
+  return `
+    <article class="placeholder-image-card ${image.selected ? 'selected' : ''}">
+      <div class="placeholder-image-art" aria-hidden="true">
+        <span>${escapeHtml(image.category)}</span>
+      </div>
+      <div>
+        <span class="platform-chip">${image.selected ? 'Selected Prompt' : 'Unselected Prompt'}</span>
+        <h3>${escapeHtml(image.productTitle)}</h3>
+        <p>${escapeHtml(image.category)}</p>
+        <small>${escapeHtml(image.promptPreview)}</small>
+      </div>
+    </article>
+  `;
+}
+
+function renderImageCreationWorkspace(savedProducts) {
+  const selectedPromptCount = imageWorkspaceState.prompts.filter((prompt) => prompt.selected).length;
+  const promptCards = imageWorkspaceState.prompts.map(renderGeneratedPromptCard).join('');
+  const imageCards = imageWorkspaceState.images.map(renderPlaceholderImageCard).join('');
+  const promptEmptyState = imageWorkspaceState.prompts.length === 0
+    ? '<p class="empty-state">Generate image prompts from a selected product to start.</p>'
+    : '';
+  const galleryEmptyState = imageWorkspaceState.images.length === 0
+    ? '<p class="empty-state">Select prompts, then use them to create placeholder image cards.</p>'
+    : '';
+
+  return `
+    <section class="image-workspace-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Image Creation</p>
+          <h2>Image Creation</h2>
+          <p class="source-label">Local prompt workspace only. No image API is connected yet.</p>
+        </div>
+        <span>${savedProducts.length} selected product(s)</span>
+      </div>
+      <div class="image-creation-product-list">
+        ${savedProducts.length === 0 ? '<p class="empty-state">No selected products available for image prompts.</p>' : savedProducts.map((product) => `
+          <article class="image-creation-product">
+            <img alt="" src="${escapeHtml(product.image)}" />
+            <div>
+              <span class="platform-chip">${escapeHtml(product.platform)}</span>
+              <h3>${escapeHtml(product.title)}</h3>
+              <p>${escapeHtml(product.price)}</p>
+            </div>
+            <button class="workspace-action-button" data-generate-prompts-product-id="${escapeHtml(promptProductKey(product))}" type="button">Generate Image Prompts</button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+
+    <section class="image-workspace-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Generated Image Prompts</p>
+          <h2>Generated Image Prompts</h2>
+          <p class="source-label">${selectedPromptCount} prompt(s) marked as selected.</p>
+        </div>
+        <button class="workspace-action-button secondary" ${selectedPromptCount === 0 ? 'disabled' : ''} id="use-selected-prompts" type="button">Use Selected Prompts for Images</button>
+      </div>
+      <div class="prompt-grid">${promptEmptyState}${promptCards}</div>
+    </section>
+
+    <section class="image-workspace-section">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Generated Images Gallery</p>
+          <h2>Generated Images Gallery</h2>
+          <p class="source-label">Placeholder cards only. Real image generation is not connected.</p>
+        </div>
+        <span>${imageWorkspaceState.images.length} placeholder image(s)</span>
+      </div>
+      <div class="placeholder-gallery">${galleryEmptyState}${imageCards}</div>
+    </section>
+  `;
+}
+
 function renderContentGeneratorLanding() {
+  imageWorkspaceState = readImageWorkspaceState();
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
-  const productCards = savedProducts
-    .map(
-      (product) => `
-        <article class="content-product-card">
-          <img alt="" src="${escapeHtml(product.image)}" />
-          <div>
-            <span class="platform-chip">${escapeHtml(product.platform)}</span>
-            <h3>${escapeHtml(product.title)}</h3>
-            <p>${escapeHtml(product.price)}</p>
-            <a class="source-url" href="${escapeHtml(product.sourceUrl)}" target="_blank" rel="noreferrer">product_url: ${escapeHtml(product.sourceUrl)}</a>
-          </div>
-        </article>
-      `,
-    )
-    .join('');
+  const productCards = savedProducts.map(renderContentProductCard).join('');
   const emptyState = savedProducts.length === 0 ? '<p class="empty-state">No selected products found. Go back and select products first.</p>' : '';
 
   return `
@@ -1247,14 +1461,35 @@ function renderContentGeneratorLanding() {
       </section>
       <section class="results-section">
         <div class="section-heading">
-          <h2>Products From Product Command Center</h2>
+          <h2>Selected Products</h2>
           <span>${savedProducts.length}/${maxSelectedProducts}</span>
         </div>
         <div class="content-products-grid">${emptyState}${productCards}</div>
       </section>
+      ${renderImageCreationWorkspace(savedProducts)}
       <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
     </main>
   `;
+}
+
+
+function attachContentGeneratorEvents() {
+  const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
+
+  document.querySelectorAll('[data-generate-prompts-product-id]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const product = savedProducts.find((item) => promptProductKey(item) === String(button.dataset.generatePromptsProductId));
+      if (product) generateImagePromptsForProduct(product);
+    });
+  });
+
+  document.querySelectorAll('[data-toggle-prompt-id]').forEach((button) => {
+    button.addEventListener('click', () => toggleImagePrompt(button.dataset.togglePromptId));
+  });
+
+  document.querySelector('#use-selected-prompts')?.addEventListener('click', () => {
+    createPlaceholderImagesFromSelectedPrompts();
+  });
 }
 
 function attachProductCommandCenterEvents() {
@@ -1384,6 +1619,7 @@ function render() {
 
   if (window.location.pathname.replace(/\/$/, '').endsWith('/content-generator')) {
     root.innerHTML = renderContentGeneratorLanding();
+    attachContentGeneratorEvents();
     return;
   }
 
