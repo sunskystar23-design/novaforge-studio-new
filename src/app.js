@@ -230,6 +230,9 @@ let selectedCreativeTags = [];
 let creativeSearchNotice = '';
 let projectGoal = 'Sell Product';
 let selectedConceptId = '';
+let lockedConceptId = '';
+let comparedConceptId = '';
+let favoriteConceptIds = [];
 let generatedStoryboardScenes = [];
 let storyboardVariation = 0;
 let storyboardNotice = '';
@@ -2055,6 +2058,8 @@ function updateCharacterEngineSelection({ characterId, characterCount, character
   if (characterCount) selectedCharacterCount = characterCount;
   if (characterRole) selectedCharacterRole = characterRole;
   selectedConceptId = '';
+  lockedConceptId = '';
+  comparedConceptId = '';
   generatedStoryboardScenes = [];
   storyboardVariation = 0;
   storyboardNotice = 'Character Engine updated. Concept Board, AI Director, Storyboard, and Prompt Plan context refreshed.';
@@ -2349,53 +2354,27 @@ function getPromptPlanSummary() {
   };
 }
 
-function getDirectorActionGroup(action) {
-  const actionType = action.actionType || '';
-
-  if (['Concept Direction', 'Conversion Strategy'].includes(actionType)) return 'Strategy';
-  if (['Visual Direction', 'Audio Direction'].includes(actionType)) return 'Visual Direction';
-  return 'Production Prep';
-}
-
-function renderDirectorActionCard(action) {
-  return `
-    <article class="director-action-card priority-${escapeHtml(action.priority.toLowerCase())}">
-      <div>
-        <span>${escapeHtml(action.actionType)} · ${escapeHtml(action.priority)} Priority</span>
-        <h4>${escapeHtml(action.title)}</h4>
-        <p>${escapeHtml(action.description)}</p>
-      </div>
-      <button type="button" data-director-action-id="${escapeHtml(action.id)}">${escapeHtml(action.buttonLabel)}</button>
-    </article>
-  `;
-}
-
 function renderDirectorActions(actions = []) {
   const notice = directorActionNotice ? `<p class="director-action-notice">${escapeHtml(directorActionNotice)}</p>` : '';
-  const actionGroups = ['Strategy', 'Visual Direction', 'Production Prep'].map((groupName) => ({
-    groupName,
-    actions: actions.filter((action) => getDirectorActionGroup(action) === groupName),
-  })).filter((group) => group.actions.length > 0);
 
   return `
     <section class="director-actions-section" aria-label="AI Director Actions">
       <div class="director-actions-heading">
         <span class="studio-kicker">AI Director Actions</span>
         <h3>Recommended Next Actions</h3>
-        <p>Grouped local next steps only. Buttons update planning context without calling an API.</p>
+        <p>Local mock actions only. Clicking an action updates planning context without calling an API.</p>
       </div>
       ${notice}
-      <div class="director-action-groups">
-        ${actionGroups.map((group) => `
-          <section class="director-action-group" data-director-action-group="${escapeHtml(group.groupName)}" aria-label="${escapeHtml(group.groupName)} actions">
-            <div class="director-action-group-heading">
-              <span>${escapeHtml(group.groupName)}</span>
-              <small>${group.actions.length} step${group.actions.length === 1 ? '' : 's'}</small>
+      <div class="director-action-grid">
+        ${actions.map((action) => `
+          <article class="director-action-card priority-${escapeHtml(action.priority.toLowerCase())}">
+            <div>
+              <span>${escapeHtml(action.actionType)} · ${escapeHtml(action.priority)} Priority</span>
+              <h4>${escapeHtml(action.title)}</h4>
+              <p>${escapeHtml(action.description)}</p>
             </div>
-            <div class="director-action-grid">
-              ${group.actions.map(renderDirectorActionCard).join('')}
-            </div>
-          </section>
+            <button type="button" data-director-action-id="${escapeHtml(action.id)}">${escapeHtml(action.buttonLabel)}</button>
+          </article>
         `).join('')}
       </div>
     </section>
@@ -2412,41 +2391,38 @@ function renderPromptPlanBuilder() {
     : '';
 
   return `
-    <details class="prompt-plan-placeholder prompt-plan-builder compact-prompt-plan" id="prompt-plan-builder" aria-label="Prompt Plan Builder" open>
-      <summary class="prompt-plan-summary-toggle">
+    <section class="prompt-plan-placeholder prompt-plan-builder" aria-label="Prompt Plan Builder">
+      <div class="director-actions-heading">
         <span class="studio-kicker">Prompt Plan Builder</span>
-        <strong>Prompt Plan</strong>
-        <small>${summary.readyBlocks}/${summary.totalBlocks} ready</small>
-      </summary>
-      <div class="prompt-plan-body">
-        <p class="prompt-plan-helper">Editable local plan only. Real image, video, audio, and caption generation are not connected.</p>
-        <div class="prompt-plan-summary" aria-label="Prompt Plan Summary">
-          <span>Total Blocks <strong>${summary.totalBlocks}</strong></span>
-          <span>Ready Blocks <strong>${summary.readyBlocks}</strong></span>
-          <span>Pending Blocks <strong>${summary.pendingBlocks}</strong></span>
-        </div>
-        ${notice}
-        ${emptyState}
-        <div class="prompt-plan-grid">
-          ${promptPlanBlocks.map((block) => `
-            <article class="prompt-plan-block ${block.status === 'ready' ? 'ready' : 'pending'}">
-              <div class="prompt-plan-block-heading">
-                <div>
-                  <span>${escapeHtml(block.title)}</span>
-                  <p>${escapeHtml(block.description)}</p>
-                </div>
-                <strong>${escapeHtml(block.status)}</strong>
-              </div>
-              <label class="prompt-plan-textarea-label">
-                <span>Prompt Text</span>
-                <textarea data-prompt-plan-block-input="${escapeHtml(block.id)}" rows="4">${escapeHtml(block.promptText)}</textarea>
-              </label>
-              <button type="button" data-save-prompt-plan-block-id="${escapeHtml(block.id)}">${block.status === 'ready' ? 'Update' : 'Save'}</button>
-            </article>
-          `).join('')}
-        </div>
+        <h3>Prompt Plan</h3>
+        <p>Editable local plan only. Real image, video, audio, and caption generation are not connected.</p>
       </div>
-    </details>
+      <div class="prompt-plan-summary" aria-label="Prompt Plan Summary">
+        <span>Total Blocks <strong>${summary.totalBlocks}</strong></span>
+        <span>Ready Blocks <strong>${summary.readyBlocks}</strong></span>
+        <span>Pending Blocks <strong>${summary.pendingBlocks}</strong></span>
+      </div>
+      ${notice}
+      ${emptyState}
+      <div class="prompt-plan-grid">
+        ${promptPlanBlocks.map((block) => `
+          <article class="prompt-plan-block ${block.status === 'ready' ? 'ready' : 'pending'}">
+            <div class="prompt-plan-block-heading">
+              <div>
+                <span>${escapeHtml(block.title)}</span>
+                <p>${escapeHtml(block.description)}</p>
+              </div>
+              <strong>${escapeHtml(block.status)}</strong>
+            </div>
+            <label class="prompt-plan-textarea-label">
+              <span>Prompt Text</span>
+              <textarea data-prompt-plan-block-input="${escapeHtml(block.id)}" rows="5">${escapeHtml(block.promptText)}</textarea>
+            </label>
+            <button type="button" data-save-prompt-plan-block-id="${escapeHtml(block.id)}">${block.status === 'ready' ? 'Update' : 'Save'}</button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
   `;
 }
 
@@ -2634,15 +2610,57 @@ function getCreativeStudioConcepts(savedProducts = []) {
 
 function getActiveConcept(savedProducts = []) {
   const concepts = getCreativeStudioConcepts(savedProducts);
-  return concepts.find((concept) => concept.id === selectedConceptId) || concepts[0];
+  return concepts.find((concept) => concept.id === (lockedConceptId || selectedConceptId)) || concepts[0];
+}
+
+function getSelectedConcept(savedProducts = []) {
+  const concepts = getCreativeStudioConcepts(savedProducts);
+  return concepts.find((concept) => concept.id === selectedConceptId) || null;
+}
+
+function getLockedConcept(savedProducts = []) {
+  const concepts = getCreativeStudioConcepts(savedProducts);
+  return concepts.find((concept) => concept.id === lockedConceptId) || null;
 }
 
 function selectCreativeConcept(conceptId) {
   selectedConceptId = conceptId;
+  if (lockedConceptId && lockedConceptId !== conceptId) lockedConceptId = '';
   generatedStoryboardScenes = [];
   storyboardVariation = 0;
   storyboardNotice = 'Concept selected. Generate a storyboard to simulate the AI Director workflow.';
   creativeSearchNotice = 'Concept selected. Creative Blueprint and AI Director guidance updated.';
+  directorActionNotice = '';
+  resetPromptPlanBuilder();
+  render();
+}
+
+function toggleFavoriteConcept(conceptId) {
+  favoriteConceptIds = favoriteConceptIds.includes(conceptId)
+    ? favoriteConceptIds.filter((id) => id !== conceptId)
+    : [...favoriteConceptIds, conceptId];
+  creativeSearchNotice = favoriteConceptIds.includes(conceptId) ? 'Concept added to favorites.' : 'Concept removed from favorites.';
+  render();
+}
+
+function compareConcept(conceptId) {
+  comparedConceptId = comparedConceptId === conceptId ? '' : conceptId;
+  creativeSearchNotice = comparedConceptId ? 'Compare mode opened for the selected concept pair.' : 'Compare mode closed.';
+  render();
+}
+
+function toggleLockConcept(conceptId) {
+  if (lockedConceptId === conceptId) {
+    lockedConceptId = '';
+    storyboardNotice = 'Direction unlocked. You can choose or compare another concept.';
+  } else {
+    selectedConceptId = conceptId;
+    lockedConceptId = conceptId;
+    generatedStoryboardScenes = [];
+    storyboardVariation = 0;
+    storyboardNotice = 'Locked Direction selected. Storyboard will use this concept direction.';
+  }
+  comparedConceptId = '';
   directorActionNotice = '';
   resetPromptPlanBuilder();
   render();
@@ -2780,7 +2798,7 @@ function createStoryboardFromCurrentConcept(regenerate = false) {
 
 function renderProjectGoalSelector() {
   return `
-    <label class="studio-field" id="creative-project-goal-anchor">
+    <label class="studio-field">
       <span>Project Goal</span>
       <select aria-label="Project Goal Selector" id="project-goal-selector">
         ${creativeProjectGoals.map((goal) => `<option value="${escapeHtml(goal)}" ${goal === projectGoal ? 'selected' : ''}>${escapeHtml(goal)}</option>`).join('')}
@@ -2804,7 +2822,7 @@ function renderCreativeSearchBar() {
   const notice = creativeSearchNotice ? `<p class="creative-search-notice">${escapeHtml(creativeSearchNotice)}</p>` : '';
 
   return `
-    <section class="creative-search-module" id="creative-inputs-anchor" aria-label="Creative Search and Keyword Expansion">
+    <section class="creative-search-module" aria-label="Creative Search and Keyword Expansion">
       <label class="studio-field creative-search-field">
         <span>Creative Search</span>
         <input id="creative-search-input" type="search" placeholder="Describe the creative direction, e.g. Luxury ASMR Vanilla Campaign" value="${escapeHtml(creativeSearchQuery)}" />
@@ -2850,7 +2868,7 @@ function renderCharacterProfilePanel() {
 
 function renderCharacterEngineSelector() {
   return `
-    <section class="studio-input-section character-engine-section" id="character-engine-anchor" aria-label="Character Engine">
+    <section class="studio-input-section character-engine-section" aria-label="Character Engine">
       <h3>Character Engine</h3>
       <div class="character-selector-grid">
         <label class="studio-field">
@@ -2877,165 +2895,166 @@ function renderCharacterEngineSelector() {
   `;
 }
 
-function renderProductContextBar(savedProducts = []) {
-  const primaryProduct = savedProducts[0] ? normalizeProduct(savedProducts[0]) : null;
-  const productSummary = savedProducts.length === 1 ? '1 product selected' : `${savedProducts.length} products selected`;
-
-  if (!primaryProduct) {
-    return `
-      <section class="product-context-bar empty" id="product-context-bar" aria-label="Product context bar">
-        <div class="product-context-summary">
-          <div class="product-context-thumb placeholder" aria-hidden="true">NF</div>
-          <div>
-            <span class="product-context-count">0 products selected</span>
-            <strong>No primary product loaded</strong>
-            <p>Return to Product Command Center to add product context.</p>
-          </div>
-        </div>
-        <a class="back-link back-button product-context-change" href="/novaforge-studio-new/">Change Products</a>
-      </section>
-    `;
-  }
+function renderSelectedProductContext(product) {
+  const normalizedProduct = normalizeProduct(product);
 
   return `
-    <section class="product-context-bar" id="product-context-bar" aria-label="Product context bar">
-      <div class="product-context-summary">
-        <img class="product-context-thumb" alt="" src="${escapeHtml(primaryProduct.image)}" />
-        <div>
-          <span class="product-context-count">${escapeHtml(productSummary)}</span>
-          <strong>${escapeHtml(primaryProduct.title)}</strong>
-          <p>
-            <span>${escapeHtml(primaryProduct.platform)}</span>
-            <span aria-hidden="true">•</span>
-            <span>${escapeHtml(primaryProduct.price)}</span>
-          </p>
-        </div>
+    <article class="studio-product-context-card">
+      <img alt="" src="${escapeHtml(normalizedProduct.image)}" />
+      <div>
+        <span>${escapeHtml(normalizedProduct.platform)}</span>
+        <strong>${escapeHtml(normalizedProduct.title)}</strong>
       </div>
-      <a class="back-link back-button product-context-change" href="/novaforge-studio-new/">Change Products</a>
-    </section>
+    </article>
   `;
 }
 
-function getCreativeWorkflowSteps(savedProducts = []) {
-  const stepDefinitions = [
-    { id: 'goal', number: 1, label: 'Goal', complete: Boolean(projectGoal), target: 'creative-project-goal-anchor' },
-    { id: 'product', number: 2, label: 'Product', complete: savedProducts.length > 0, target: 'product-context-bar' },
-    { id: 'character', number: 3, label: 'Character', complete: Boolean(selectedCharacterId), target: 'character-engine-anchor' },
-    { id: 'concept', number: 4, label: 'Concept', complete: Boolean(selectedConceptId), target: 'concept-board-anchor' },
-    { id: 'storyboard', number: 5, label: 'Storyboard', complete: generatedStoryboardScenes.length > 0, target: 'storyboard-system-anchor' },
-    { id: 'prompt-plan', number: 6, label: 'Prompt Plan', complete: promptPlanBlocks.length > 0, target: promptPlanBlocks.length > 0 ? 'prompt-plan-builder' : 'ai-director-panel' },
-    { id: 'generate', number: 7, label: 'Generate', complete: false, target: 'legacy-image-workspace' },
+
+function getConceptRiskNote(concept) {
+  if (!concept) return 'Select a concept before comparing risks.';
+  if (concept.id === 'luxury-documentary') return 'Slower pacing requires a strong opening frame.';
+  if (concept.id === 'asmr-product-film') return 'Sensory pacing may need a clearer product benefit cue.';
+  if (concept.id === 'podcast-story-concept') return 'Voice-led content needs strong narration to stay visual.';
+  if (concept.id === 'viral-short-form-hook') return 'Trend speed can reduce premium perception if over-cut.';
+  return 'Direction may need a sharper hook before production.';
+}
+
+function getConceptBestUseCase(concept) {
+  if (!concept) return 'Choose a concept to reveal best use case.';
+  if (concept.id === 'luxury-documentary') return 'Premium trust, brand perception, high-value product launches.';
+  if (concept.id === 'asmr-product-film') return 'Sensory product demos, beauty, coffee, texture-led commerce.';
+  if (concept.id === 'podcast-story-concept') return 'Trust building, education, founder/expert narratives.';
+  if (concept.id === 'viral-short-form-hook') return 'Fast awareness, social testing, high-energy product hooks.';
+  return concept.storyAngle || 'Balanced product story and social campaign planning.';
+}
+
+function renderConceptDecisionBar(concepts = []) {
+  const selectedConcept = concepts.find((concept) => concept.id === selectedConceptId) || null;
+  const lockedConcept = concepts.find((concept) => concept.id === lockedConceptId) || null;
+  const conceptForStatus = lockedConcept || selectedConcept;
+  const status = lockedConcept ? 'Locked' : 'Unlocked';
+  const nextAction = lockedConcept
+    ? 'Generate storyboard from locked direction'
+    : selectedConcept
+      ? 'Lock direction or generate storyboard'
+      : 'Select a concept to continue';
+
+  return `
+    <div class="concept-decision-bar" aria-label="Concept Decision Bar">
+      <span>Selected: <strong>${escapeHtml(conceptForStatus?.title || 'None')}</strong></span>
+      <span>Status: <strong>${escapeHtml(status)}</strong></span>
+      <span>Favorites: <strong>${favoriteConceptIds.length}</strong></span>
+      <span>Next: <strong>${escapeHtml(nextAction)}</strong></span>
+    </div>
+  `;
+}
+
+function renderConceptComparisonPanel(concepts = []) {
+  const selectedConcept = getSelectedConceptFromList(concepts);
+  const comparedConcept = concepts.find((concept) => concept.id === comparedConceptId);
+  if (!selectedConcept || !comparedConcept || selectedConcept.id === comparedConcept.id) return '';
+
+  const rows = [
+    ['Style', selectedConcept.style, comparedConcept.style],
+    ['Content Format', selectedConcept.contentFormat, comparedConcept.contentFormat],
+    ['Emotion', selectedConcept.emotion, comparedConcept.emotion],
+    ['Best Use Case', getConceptBestUseCase(selectedConcept), getConceptBestUseCase(comparedConcept)],
+    ['Risk Note', getConceptRiskNote(selectedConcept), getConceptRiskNote(comparedConcept)],
   ];
-  const activeIndex = stepDefinitions.findIndex((step) => !step.complete);
-
-  return stepDefinitions.map((step, index) => {
-    const isGeneratePlaceholder = step.id === 'generate';
-    const status = index === activeIndex && !isGeneratePlaceholder
-      ? 'active'
-      : step.complete
-        ? 'complete'
-        : 'pending';
-
-    return { ...step, status };
-  });
-}
-
-function getActiveCreativeWorkflowStep(savedProducts = []) {
-  const steps = getCreativeWorkflowSteps(savedProducts);
-  return steps.find((step) => step.status === 'active') || steps.find((step) => step.id === 'generate') || steps[steps.length - 1];
-}
-
-function getCreativeCanvasNextStep(savedProducts = []) {
-  const hasCreativeSearch = creativeSearchQuery.trim().length > 0;
-  const hasCreativeTags = selectedCreativeTags.length > 0;
-
-  if (savedProducts.length === 0) {
-    return 'Add or change products from Product Command Center before planning creative.';
-  }
-
-  if (!hasCreativeSearch && !hasCreativeTags) {
-    return 'Start by describing the creative direction or expand ideas.';
-  }
-
-  if (!selectedConceptId) {
-    return 'Select one concept direction to continue.';
-  }
-
-  if (generatedStoryboardScenes.length === 0) {
-    return 'Generate or review the storyboard.';
-  }
-
-  if (promptPlanBlocks.length === 0) {
-    return 'Review AI Director suggestions or prepare a prompt plan.';
-  }
-
-  return 'Review generated prompt directions, then use the secondary Generate workspace when ready.';
-}
-
-function renderCreativeCanvasNextStepStrip(savedProducts = []) {
-  const activeStep = getActiveCreativeWorkflowStep(savedProducts);
 
   return `
-    <section class="creative-next-step-strip" aria-label="Creative Canvas Next Step">
-      <span>Active Step: ${escapeHtml(activeStep.label)}</span>
-      <p>${escapeHtml(getCreativeCanvasNextStep(savedProducts))}</p>
+    <section class="concept-comparison-panel" aria-label="Compare Concepts">
+      <div class="concept-comparison-heading">
+        <span class="studio-kicker">Compare Concept Mode</span>
+        <h3>${escapeHtml(selectedConcept.title)} vs ${escapeHtml(comparedConcept.title)}</h3>
+      </div>
+      <div class="concept-comparison-grid">
+        ${rows.map(([label, selectedValue, comparedValue]) => `
+          <article>
+            <span>${escapeHtml(label)}</span>
+            <p><strong>${escapeHtml(selectedConcept.title)}:</strong> ${escapeHtml(selectedValue)}</p>
+            <p><strong>${escapeHtml(comparedConcept.title)}:</strong> ${escapeHtml(comparedValue)}</p>
+          </article>
+        `).join('')}
+      </div>
     </section>
   `;
 }
 
-function renderCreativeStepFlowBar(savedProducts = []) {
-  const steps = getCreativeWorkflowSteps(savedProducts);
-
-  return `
-    <nav class="creative-step-flow-bar" aria-label="Creative Studio Step Flow">
-      ${steps.map((step) => `
-        <button
-          class="creative-step-pill ${escapeHtml(step.status)}"
-          type="button"
-          data-creative-step="${escapeHtml(step.id)}"
-          data-step-status="${escapeHtml(step.status)}"
-          data-step-target="${escapeHtml(step.target)}"
-          aria-label="Step ${step.number}: ${escapeHtml(step.label)} is ${escapeHtml(step.status)}"
-        >
-          <span class="step-number">${step.number}</span>
-          <span class="step-label">${escapeHtml(step.label)}</span>
-          <span class="step-state">${escapeHtml(step.status)}</span>
-        </button>
-      `).join('')}
-    </nav>
-  `;
+function getSelectedConceptFromList(concepts = []) {
+  return concepts.find((concept) => concept.id === selectedConceptId) || concepts[0] || null;
 }
 
-function getConceptFitReason(concept) {
-  const tagSummary = selectedCreativeTags.length > 0
-    ? selectedCreativeTags.slice(0, 2).join(' + ')
-    : projectGoal;
+function getStoryboardConceptLabel(savedProducts = []) {
+  const lockedConcept = getLockedConcept(savedProducts);
+  const activeConcept = lockedConcept || getSelectedConcept(savedProducts) || getActiveConcept(savedProducts);
+  if (lockedConcept) return `Storyboard based on locked direction: ${lockedConcept.title}`;
+  return `Storyboard based on: ${activeConcept?.title || 'Select a concept'}`;
+}
 
-  return `Fits ${tagSummary} with ${concept.style} and a ${concept.contentFormat.toLowerCase()} structure.`;
+function renderCreativeStepFlow(savedProducts = []) {
+  const hasProducts = savedProducts.length > 0;
+  const hasConcept = Boolean(lockedConceptId || selectedConceptId);
+  const conceptComplete = Boolean(lockedConceptId);
+  const storyboardComplete = generatedStoryboardScenes.length > 0;
+  const promptPlanComplete = promptPlanBlocks.some((block) => block.status === 'ready');
+  const nextStep = !hasProducts
+    ? 'Load selected products from Product Command Center'
+    : !hasConcept
+      ? 'Select a creative concept'
+      : !conceptComplete
+        ? 'Lock Direction before storyboard planning'
+        : !storyboardComplete
+          ? 'Generate storyboard from locked direction'
+          : !promptPlanComplete
+            ? 'Prepare or update Prompt Plan Builder'
+            : 'Review Legacy Image Workspace';
+  const steps = [
+    ['Products', hasProducts],
+    ['Concept', conceptComplete],
+    ['Storyboard', storyboardComplete],
+    ['Prompt Plan', promptPlanComplete],
+  ];
+
+  return `
+    <div class="creative-step-flow" aria-label="Step Flow">
+      <div class="step-flow-list">
+        ${steps.map(([label, complete]) => `<span class="${complete ? 'complete' : ''}">${escapeHtml(label)}</span>`).join('')}
+      </div>
+      <p>Next Step: ${escapeHtml(nextStep)}</p>
+    </div>
+  `;
 }
 
 function renderConceptCard(concept) {
   const conceptSelected = selectedConceptId === concept.id;
-  const selectedBadge = conceptSelected ? '<span class="selected-direction-badge">Selected Direction</span>' : '';
+  const conceptLocked = lockedConceptId === concept.id;
+  const conceptFavorite = favoriteConceptIds.includes(concept.id);
 
   return `
-    <article class="concept-card ${conceptSelected ? 'selected' : ''}" aria-label="${escapeHtml(concept.title)} concept${conceptSelected ? ' selected' : ''}">
-      <div class="concept-card-heading">
-        <div>
-          <span class="studio-kicker">Concept</span>
-          <h3>${escapeHtml(concept.title)}</h3>
+    <article class="concept-card ${conceptSelected ? 'selected' : ''} ${conceptLocked ? 'locked' : ''}">
+      <div>
+        <span class="studio-kicker">Concept</span>
+        <h3>${escapeHtml(concept.title)}</h3>
+        <div class="concept-badge-row">
+          ${conceptSelected ? '<span class="concept-state-badge selected-direction">Selected Direction</span>' : ''}
+          ${conceptLocked ? '<span class="concept-state-badge locked-direction">Locked Direction</span>' : ''}
+          ${conceptFavorite ? '<span class="concept-state-badge favorite-direction">Favorite</span>' : ''}
         </div>
-        ${selectedBadge}
+        <p>${escapeHtml(concept.description)}</p>
       </div>
-      <p>${escapeHtml(concept.description)}</p>
-      <p class="concept-fit-reason"><strong>Why it fits:</strong> ${escapeHtml(getConceptFitReason(concept))}</p>
       <dl class="concept-meta">
         <div><dt>Style</dt><dd>${escapeHtml(concept.style)}</dd></div>
         <div><dt>Format</dt><dd>${escapeHtml(concept.contentFormat)}</dd></div>
       </dl>
-      <div class="concept-card-footer">
+      <div class="concept-card-footer concept-card-actions">
         <span>Confidence score ${escapeHtml(concept.confidenceScore)}</span>
-        <button data-select-concept-id="${escapeHtml(concept.id)}" type="button">${conceptSelected ? 'Selected' : 'Select'}</button>
+        <div>
+          <button data-select-concept-id="${escapeHtml(concept.id)}" type="button">${conceptSelected ? 'Selected' : 'Select Concept'}</button>
+          <button data-compare-concept-id="${escapeHtml(concept.id)}" type="button">Compare</button>
+          <button data-favorite-concept-id="${escapeHtml(concept.id)}" type="button">${conceptFavorite ? 'Favorited' : 'Favorite'}</button>
+          <button data-lock-concept-id="${escapeHtml(concept.id)}" type="button">${conceptLocked ? 'Unlock Direction' : 'Lock Direction'}</button>
+        </div>
       </div>
     </article>
   `;
@@ -3115,7 +3134,7 @@ function renderDirectorPanel(savedProducts = []) {
   });
 
   return `
-    <aside class="studio-panel director-panel" id="ai-director-panel" aria-label="AI Director Panel">
+    <aside class="studio-panel director-panel" aria-label="AI Director Panel">
       <div class="studio-panel-heading">
         <span class="studio-kicker">AI Director Engine</span>
         <h2>AI Director Analysis</h2>
@@ -3141,13 +3160,17 @@ function renderDirectorPanel(savedProducts = []) {
   `;
 }
 
-function renderCreativeInputsPanel() {
+function renderCreativeInputsPanel(savedProducts) {
+  const productContext = savedProducts.length > 0
+    ? savedProducts.map(renderSelectedProductContext).join('')
+    : '<p class="studio-empty-note">No selected products found. Return to Product Command Center to add product context.</p>';
+
   return `
     <aside class="studio-panel creative-inputs-panel" aria-label="Creative Inputs">
       <div class="studio-panel-heading">
-        <span class="studio-kicker">Inputs</span>
+        <span class="studio-kicker">Left Panel</span>
         <h2>Creative Inputs</h2>
-        <p>Set the goal, expand keywords, and choose character direction.</p>
+        <p>Goal first. Search first. Library hidden.</p>
       </div>
       ${renderProjectGoalSelector()}
       ${renderCreativeSearchBar()}
@@ -3158,61 +3181,55 @@ function renderCreativeInputsPanel() {
           ${creativeReferenceTypes.map(renderReferenceDropzonePlaceholder).join('')}
         </div>
       </section>
+      <section class="studio-input-section">
+        <h3>Selected Product Context</h3>
+        <div class="studio-product-context-list">${productContext}</div>
+      </section>
     </aside>
   `;
 }
 
 function renderCreativeCanvasPanel(savedProducts = []) {
   const concepts = getCreativeStudioConcepts(savedProducts);
-  const activeConcept = selectedConceptId ? getActiveConcept(savedProducts) : null;
-  const storyboardReady = generatedStoryboardScenes.length > 0;
-  const storyboardCards = storyboardReady
+  const storyboardCards = generatedStoryboardScenes.length > 0
     ? generatedStoryboardScenes.map(renderStoryboardCard).join('')
-    : `<div class="storyboard-empty-state compact-empty-state">
-        <strong>Storyboard will appear after concept selection.</strong>
-        <p>${selectedConceptId ? 'Generate the storyboard to connect scenes with the selected concept.' : 'Choose a concept direction above to unlock the local storyboard mock.'}</p>
-      </div>`;
-  const storyboardActions = selectedConceptId
+    : '<p class="empty-state storyboard-empty-state">Select a concept, then generate a storyboard to replace this placeholder.</p>';
+  const storyboardConceptLabel = getStoryboardConceptLabel(savedProducts);
+  const storyboardActions = (selectedConceptId || lockedConceptId)
     ? `<div class="storyboard-actions">
         <button class="creative-expand-button" id="generate-storyboard" type="button">Generate Storyboard</button>
         <button class="creative-expand-button secondary" ${generatedStoryboardScenes.length === 0 ? 'disabled' : ''} id="regenerate-storyboard" type="button">Regenerate Storyboard</button>
       </div>`
     : '<p class="creative-search-hint">Select a concept to unlock storyboard generation.</p>';
   const notice = storyboardNotice ? `<p class="creative-search-notice">${escapeHtml(storyboardNotice)}</p>` : '';
-  const durationIndicator = storyboardReady
-    ? `<span class="storyboard-duration-pill">Total ${escapeHtml(getStoryboardEstimatedDuration())}</span>`
-    : '';
-  const conceptLabel = activeConcept
-    ? `<span class="storyboard-concept-link">Concept: ${escapeHtml(activeConcept.title)}</span>`
-    : '<span class="storyboard-concept-link muted">No concept selected</span>';
 
   return `
     <section class="studio-canvas-panel" aria-label="Creative Canvas">
-      ${renderCreativeCanvasNextStepStrip(savedProducts)}
-      ${renderCreativeStepFlowBar(savedProducts)}
-      <section class="studio-card concept-board" id="concept-board-anchor">
+      <section class="studio-card concept-board">
         <div class="studio-section-heading">
           <span class="studio-kicker">Creative Canvas</span>
           <h2>Concept Board</h2>
-          <p>Three possible directions before prompts are written.</p>
+          <p>Three possible directions before prompts are written. Select, compare, favorite, then lock one direction.</p>
         </div>
+        ${renderConceptDecisionBar(concepts)}
         <div class="concept-card-grid">
           ${concepts.map(renderConceptCard).join('')}
         </div>
+        ${renderConceptComparisonPanel(concepts)}
       </section>
       ${renderBlueprintPanel(savedProducts)}
-      <section class="studio-card storyboard-panel" id="storyboard-system-anchor">
+      <section class="studio-card storyboard-panel">
         <div class="studio-section-heading storyboard-heading">
           <div>
             <span class="studio-kicker">Storyboard Generator Mock</span>
             <h2>Storyboard System</h2>
-            <p>Mock scenes are generated from project goal, creative tags, selected concept, and selected products.</p>
-            <div class="storyboard-context-row">${conceptLabel}${durationIndicator}</div>
+            <p>${escapeHtml(storyboardConceptLabel)}</p>
+            <p>Mock scenes are generated from project goal, creative tags, selected/locked concept, and selected products.</p>
           </div>
           ${storyboardActions}
         </div>
         ${notice}
-        <div class="storyboard-grid ${storyboardReady ? 'storyboard-flow-grid' : 'storyboard-empty-grid'}">
+        <div class="storyboard-grid">
           ${storyboardCards}
         </div>
       </section>
@@ -3222,18 +3239,66 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
 function renderCreativeStudioShell(savedProducts) {
   return `
-    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio">
+    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio V2">
       <div class="creative-studio-hero">
         <div>
-          <span class="studio-kicker">Creative Workspace</span>
-          <h1>NOVAFORGE Creative Studio</h1>
-          <p>Goal first. Prompt last.</p>
+          <span class="studio-kicker">NOVAFORGE Creative Studio V2</span>
+          <h1>AI Creative Operating System</h1>
+          <p>Goal First. Prompt Last. Search First. Library Hidden. Less Forms. More Canvas.</p>
         </div>
+        <span class="studio-status-pill">${savedProducts.length} selected product(s) loaded</span>
       </div>
+      ${renderCreativeStepFlow(savedProducts)}
       <div class="creative-studio-grid">
-        ${renderCreativeInputsPanel()}
+        ${renderCreativeInputsPanel(savedProducts)}
         ${renderCreativeCanvasPanel(savedProducts)}
         ${renderDirectorPanel(savedProducts)}
+      </div>
+    </section>
+  `;
+}
+
+
+function renderLoadedProductCard(product) {
+  const sourceUrl = product.sourceUrl || product.productUrl || '';
+  const sourceLink = sourceUrl
+    ? `<a class="source-url" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>`
+    : '<span class="source-url unavailable">No source URL available</span>';
+
+  return `
+    <article class="loaded-product-card">
+      <img alt="" src="${escapeHtml(product.image)}" />
+      <div>
+        <span class="platform-chip">${escapeHtml(product.platform)}</span>
+        <h3>${escapeHtml(product.title)}</h3>
+        <p>${escapeHtml(product.price)}</p>
+        ${sourceLink}
+      </div>
+    </article>
+  `;
+}
+
+function renderSelectedProductsLoadedSection(savedProducts) {
+  const emptyState = savedProducts.length === 0
+    ? '<p class="studio-empty-note">No selected products loaded. Return to Product Command Center to select products before planning content.</p>'
+    : '';
+
+  return `
+    <section class="selected-products-loaded-section" aria-label="Selected Products Loaded">
+      <div class="selected-products-loaded-heading">
+        <div>
+          <span class="studio-kicker">Section 1</span>
+          <h1>Selected Products Loaded</h1>
+          <p>Products passed from Product Command Center via existing localStorage/sessionStorage workflow.</p>
+        </div>
+        <div class="selected-products-loaded-actions">
+          <span class="studio-status-pill">${savedProducts.length} selected product(s)</span>
+          <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
+        </div>
+      </div>
+      ${emptyState}
+      <div class="loaded-products-grid">
+        ${savedProducts.map(renderLoadedProductCard).join('')}
       </div>
     </section>
   `;
@@ -3333,7 +3398,7 @@ function renderImageCreationWorkspace(savedProducts) {
           <h2>Image Creation</h2>
           <p class="source-label">Local prompt workspace only. No image API is connected yet.</p>
         </div>
-        <span>Secondary workspace</span>
+        <span>${savedProducts.length} selected product(s)</span>
       </div>
       ${workspaceNotice}
       <div class="image-creation-product-list">
@@ -3406,9 +3471,9 @@ function renderContentGeneratorLanding() {
 
   return `
     <main class="creative-studio-page">
-      ${renderProductContextBar(savedProducts)}
+      ${renderSelectedProductsLoadedSection(savedProducts)}
       ${renderCreativeStudioShell(savedProducts)}
-      <section class="legacy-image-workspace" id="legacy-image-workspace" aria-label="Legacy Image Workspace">
+      <section class="legacy-image-workspace" aria-label="Legacy Image Workspace">
         <div class="legacy-workspace-heading">
           <span class="studio-kicker">Legacy Image Workspace</span>
           <h2>Legacy Image Workspace</h2>
@@ -3428,6 +3493,8 @@ function attachContentGeneratorEvents() {
   document.querySelector('#project-goal-selector')?.addEventListener('change', (event) => {
     projectGoal = event.target.value;
     selectedConceptId = '';
+    lockedConceptId = '';
+    comparedConceptId = '';
     generatedStoryboardScenes = [];
     storyboardNotice = '';
     creativeSearchNotice = 'Project goal updated. Concept Board and Creative Blueprint refreshed.';
@@ -3458,20 +3525,20 @@ function attachContentGeneratorEvents() {
     conceptButton.addEventListener('click', () => selectCreativeConcept(conceptButton.dataset.selectConceptId));
   });
 
+  document.querySelectorAll('[data-compare-concept-id]').forEach((conceptButton) => {
+    conceptButton.addEventListener('click', () => compareConcept(conceptButton.dataset.compareConceptId));
+  });
+
+  document.querySelectorAll('[data-favorite-concept-id]').forEach((conceptButton) => {
+    conceptButton.addEventListener('click', () => toggleFavoriteConcept(conceptButton.dataset.favoriteConceptId));
+  });
+
+  document.querySelectorAll('[data-lock-concept-id]').forEach((conceptButton) => {
+    conceptButton.addEventListener('click', () => toggleLockConcept(conceptButton.dataset.lockConceptId));
+  });
+
   document.querySelector('#generate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(false));
   document.querySelector('#regenerate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(true));
-
-  document.querySelectorAll('[data-step-target]').forEach((stepButton) => {
-    stepButton.addEventListener('click', () => {
-      const targetId = stepButton.dataset.stepTarget;
-      const target = targetId ? document.getElementById(targetId) : null;
-      if (!target) return;
-
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
-      target.focus({ preventScroll: true });
-    });
-  });
 
   document.querySelectorAll('[data-director-action-id]').forEach((actionButton) => {
     actionButton.addEventListener('click', () => handleDirectorAction(actionButton.dataset.directorActionId));
