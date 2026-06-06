@@ -2007,3 +2007,131 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.director-analysis-list {
+  display: grid;
+  gap: 14px;
+}
+
+.director-analysis-block {
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: var(--nf-radius-soft);
+  padding: 14px;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.68), rgba(15, 23, 42, 0.34));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.director-analysis-block.primary {
+  border-color: rgba(157, 245, 229, 0.26);
+  background:
+    radial-gradient(circle at top left, rgba(157, 245, 229, 0.12), transparent 48%),
+    linear-gradient(145deg, rgba(91, 124, 250, 0.16), rgba(15, 23, 42, 0.52));
+}
+
+.director-analysis-block h3 {
+  margin: 0 0 8px;
+  color: var(--nf-text-main);
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.director-analysis-block p {
+  margin: 0;
+  color: var(--nf-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.director-score-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.director-metric {
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 16px;
+  padding: 11px;
+  background: rgba(2, 6, 23, 0.32);
+}
+
+.director-metric div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--nf-text-muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.director-metric strong {
+  color: var(--nf-text-main);
+  font-size: 0.88rem;
+}
+
+.director-meter {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.director-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--nf-accent-purple), var(--nf-accent-blue), var(--nf-success-mint));
+  box-shadow: 0 0 18px rgba(91, 124, 250, 0.28);
+}
+
+.director-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.director-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  color: var(--nf-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.director-list li::before {
+  font-weight: 950;
+}
+
+.director-list.positive li::before {
+  color: var(--nf-success-mint);
+  content: "+";
+}
+
+.director-list.risk li::before {
+  color: var(--nf-accent-pink);
+  content: "–";
+}
+
+.director-list.neutral li::before {
+  color: var(--nf-accent-blue);
+  content: "•";
+}
+
+.concept-comparison strong {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--nf-text-main);
+  font-size: 0.94rem;
+}
+
+.creative-health-panel {
+  display: grid;
+  gap: 10px;
+}

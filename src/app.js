@@ -1870,6 +1870,219 @@ function getSelectedTagsSummary() {
   return selectedCreativeTags.length > 0 ? selectedCreativeTags.join(', ') : expandedKeywords.slice(0, 3).join(', ') || 'cinematic product direction';
 }
 
+
+function getPrimarySelectedProduct(products = []) {
+  return products.map((product) => normalizeProduct(product))[0] || null;
+}
+
+function detectProductCategory(product) {
+  const productText = [product?.title, product?.platform, product?.sourceUrl, ...(product?.targetTags || [])]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (/beauty|serum|skin|makeup|hair|cream|cosmetic|sunscreen|mirror/.test(productText)) return 'Beauty';
+  if (/protein|fitness|gym|workout|supplement|shake|nutrition/.test(productText)) return 'Protein';
+  if (/coffee|espresso|latte|cafe|brew|bean|mug/.test(productText)) return 'Coffee';
+  return 'General Product Showcase';
+}
+
+function getProductAwareSuggestions(category) {
+  if (category === 'Beauty') return ['Trust', 'Before/After', 'UGC', 'Creator Review'];
+  if (category === 'Protein') return ['Fitness', 'Lifestyle', 'Transformation', 'Educational'];
+  if (category === 'Coffee') return ['ASMR', 'Morning Routine', 'Lifestyle', 'Product Experience'];
+  return ['General Product Showcase', 'Hero Shot', 'Feature Highlight', 'Social Proof'];
+}
+
+function getGoalStrategy(goal) {
+  const normalizedGoal = String(goal || '').toLowerCase();
+  if (normalizedGoal.includes('sell')) return { label: 'Conversion Focus', notes: ['Show proof early', 'Make the value clear', 'End with a confident CTA'] };
+  if (normalizedGoal.includes('trust')) return { label: 'UGC Review Expert Angle', notes: ['Use credible creator proof', 'Add expert framing', 'Reduce hype'] };
+  if (normalizedGoal.includes('brand')) return { label: 'Storytelling Brand Film', notes: ['Lead with identity', 'Build memory', 'Keep pacing premium'] };
+  if (normalizedGoal.includes('viral')) return { label: 'Fast Hook Trend Format', notes: ['Open with tension', 'Use quick payoff', 'Make it remixable'] };
+  if (normalizedGoal.includes('lead')) return { label: 'Problem Solution', notes: ['Name the problem', 'Offer a simple next step', 'Capture intent'] };
+  return { label: 'Creative Strategy', notes: ['Clarify the outcome', 'Match format to audience', 'Keep product context visible'] };
+}
+
+function calculateDirectorScores({ category, selectedCreativeTags: tags = [], selectedConcept, storyboard = [] }) {
+  const tagBoost = Math.min(tags.length * 3, 12);
+  const storyboardBoost = storyboard.length > 0 ? 7 : 0;
+  const conceptBoost = selectedConcept ? 6 : 0;
+  const categoryBoost = category !== 'General Product Showcase' ? 5 : 0;
+
+  return {
+    creativeStrength: Math.min(78 + tagBoost + conceptBoost, 96),
+    audienceMatch: Math.min(74 + categoryBoost + conceptBoost + storyboardBoost, 94),
+    platformFit: Math.min(76 + Math.floor(tagBoost / 2) + storyboardBoost, 93),
+  };
+}
+
+function calculateCreativeHealth({ selectedConcept, storyboard = [], selectedCreativeTags: tags = [] }) {
+  const storyboardBoost = storyboard.length > 0 ? 10 : 0;
+  const tagBoost = Math.min(tags.length * 2, 8);
+
+  return {
+    noveltyScore: Math.min(70 + tagBoost + (selectedConcept?.id?.includes('viral') ? 8 : 4), 95),
+    clarityScore: Math.min(76 + storyboardBoost + (selectedConcept ? 5 : 0), 96),
+    conversionPotential: Math.min(72 + storyboardBoost + (selectedConcept?.contentFormat?.includes('product') ? 8 : 4), 94),
+    storytellingDepth: Math.min(68 + storyboardBoost + (selectedConcept?.storyAngle ? 10 : 0), 96),
+  };
+}
+
+function getConceptComparison(selectedConcept) {
+  if (!selectedConcept) {
+    return {
+      title: 'No concept selected yet',
+      positives: ['Creative tags can still shape recommendations', 'Concept Board is ready for selection'],
+      negatives: ['Blueprint and storyboard direction are still broad'],
+    };
+  }
+
+  if (selectedConcept.id === 'luxury-documentary') {
+    return {
+      title: 'Luxury Documentary',
+      positives: ['Strong premium perception', 'High trust', 'Elegant product memory'],
+      negatives: ['Slower pacing', 'Needs strong first frame'],
+    };
+  }
+
+  if (selectedConcept.id === 'asmr-product-film') {
+    return {
+      title: 'ASMR Product Film',
+      positives: ['High sensory appeal', 'Strong product experience', 'Distinctive sound identity'],
+      negatives: ['Needs careful pacing', 'Less direct selling'],
+    };
+  }
+
+  if (selectedConcept.id === 'podcast-story-concept') {
+    return {
+      title: 'Podcast Story Concept',
+      positives: ['Good for trust building', 'Strong explanation format', 'Longer attention window'],
+      negatives: ['Requires strong voice direction', 'Lower visual speed'],
+    };
+  }
+
+  if (selectedConcept.id === 'viral-short-form-hook') {
+    return {
+      title: 'Viral Short-Form Hook',
+      positives: ['Fast attention capture', 'Strong trend fit', 'Clear social momentum'],
+      negatives: ['Can feel less premium', 'Needs sharp editing'],
+    };
+  }
+
+  return {
+    title: selectedConcept.title,
+    positives: ['Balanced creative structure', 'Clear product fit', 'Flexible execution'],
+    negatives: ['May need a more distinctive hook'],
+  };
+}
+
+function getStoryboardFeedback(storyboard = [], selectedConcept) {
+  if (storyboard.length === 0) return 'Storyboard not generated yet. Generate storyboard to let AI Director evaluate narrative structure.';
+  if (selectedConcept?.id === 'luxury-documentary') return 'Current storyboard emphasizes premium brand perception through reveal, story, experience, and hero shot progression.';
+  if (selectedConcept?.id === 'asmr-product-film') return 'Current storyboard emphasizes sensory product experience with texture, interaction, slow detail, and ambient closure.';
+  if (selectedConcept?.id === 'podcast-story-concept') return 'Current storyboard emphasizes trust through voice-led introduction, story build-up, key insight, and closing thought.';
+  if (selectedConcept?.id === 'viral-short-form-hook') return 'Current storyboard emphasizes speed through hook, problem, solution, and CTA sequencing.';
+  return 'Current storyboard creates a clear product narrative with setup, proof, transformation, and closing memory.';
+}
+
+function generateDirectorAnalysis({ projectGoal: goal = 'Sell Product', selectedProducts: products = [], creativeSearchQuery: query = '', selectedCreativeTags: tags = [], selectedConcept, storyboard = [] } = {}) {
+  const selectedProduct = getPrimarySelectedProduct(products);
+  const category = detectProductCategory(selectedProduct);
+  const productSuggestions = getProductAwareSuggestions(category);
+  const goalStrategy = getGoalStrategy(goal);
+  const tagSummary = tags.length > 0 ? tags.join(', ') : 'balanced creative direction';
+  const productTitle = selectedProduct?.title || 'selected product';
+  const conceptTitle = selectedConcept?.title || 'No concept selected';
+  const scores = calculateDirectorScores({ category, selectedCreativeTags: tags, selectedConcept, storyboard });
+  const health = calculateCreativeHealth({ selectedConcept, storyboard, selectedCreativeTags: tags });
+  const comparison = getConceptComparison(selectedConcept);
+  const storyboardFeedback = getStoryboardFeedback(storyboard, selectedConcept);
+
+  return {
+    recommendedDirection: selectedConcept
+      ? `${conceptTitle} should lead the creative direction for ${productTitle}, using ${tagSummary} to support ${goalStrategy.label}.`
+      : `Start with ${goalStrategy.label} for ${productTitle}, then select a concept to sharpen the direction.`,
+    audienceInsight: `${category} audience signals suggest ${productSuggestions.join(', ')} angles will make the concept easier to trust and remember.`,
+    strategy: `Use ${goalStrategy.label}: ${goalStrategy.notes.join('; ')}. Search context: ${query.trim() || 'No search query yet'}.`,
+    opportunities: productSuggestions.map((suggestion) => `${suggestion} angle for ${productTitle}`),
+    risks: selectedConcept
+      ? comparison.negatives
+      : ['Direction is broad until a concept is selected', 'Storyboard feedback is unavailable before generation'],
+    alternativeDirections: selectedConcept
+      ? [`Alternative ${productSuggestions[0]} route`, `${goalStrategy.label} variation`, `${tagSummary} remix`]
+      : ['Cinematic Product Story', 'Premium Social Campaign', 'Educational Product Breakdown'],
+    scores,
+    health,
+    comparison,
+    storyboardFeedback,
+  };
+}
+
+function renderDirectorMetricBar(label, value) {
+  return `
+    <article class="director-metric">
+      <div><span>${escapeHtml(label)}</span><strong>${value}%</strong></div>
+      <div class="director-meter"><span style="width: ${value}%"></span></div>
+    </article>
+  `;
+}
+
+function renderDirectorList(items, tone = 'positive') {
+  return `<ul class="director-list ${escapeHtml(tone)}">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+}
+
+function renderDirectorAnalysisPanel(analysis) {
+  return `
+    <section class="director-analysis-block primary">
+      <h3>Recommended Direction</h3>
+      <p>${escapeHtml(analysis.recommendedDirection)}</p>
+    </section>
+    <section class="director-score-grid" aria-label="Direction Score">
+      ${renderDirectorMetricBar('Creative Strength', analysis.scores.creativeStrength)}
+      ${renderDirectorMetricBar('Audience Match', analysis.scores.audienceMatch)}
+      ${renderDirectorMetricBar('Platform Fit', analysis.scores.platformFit)}
+    </section>
+    <section class="director-analysis-block">
+      <h3>Audience Insight</h3>
+      <p>${escapeHtml(analysis.audienceInsight)}</p>
+    </section>
+    <section class="director-analysis-block">
+      <h3>Creative Strategy</h3>
+      <p>${escapeHtml(analysis.strategy)}</p>
+    </section>
+    <section class="director-analysis-block">
+      <h3>Content Opportunities</h3>
+      ${renderDirectorList(analysis.opportunities, 'positive')}
+    </section>
+    <section class="director-analysis-block">
+      <h3>Risk Notes</h3>
+      ${renderDirectorList(analysis.risks, 'risk')}
+    </section>
+    <section class="director-analysis-block">
+      <h3>Alternative Directions</h3>
+      ${renderDirectorList(analysis.alternativeDirections, 'neutral')}
+    </section>
+    <section class="director-analysis-block concept-comparison">
+      <h3>Concept Comparison</h3>
+      <strong>${escapeHtml(analysis.comparison.title)}</strong>
+      ${renderDirectorList(analysis.comparison.positives, 'positive')}
+      ${renderDirectorList(analysis.comparison.negatives, 'risk')}
+    </section>
+    <section class="director-analysis-block">
+      <h3>Storyboard Feedback</h3>
+      <p>${escapeHtml(analysis.storyboardFeedback)}</p>
+    </section>
+    <section class="director-analysis-block creative-health-panel">
+      <h3>Creative Health</h3>
+      ${renderDirectorMetricBar('Novelty Score', analysis.health.noveltyScore)}
+      ${renderDirectorMetricBar('Clarity Score', analysis.health.clarityScore)}
+      ${renderDirectorMetricBar('Conversion Potential', analysis.health.conversionPotential)}
+      ${renderDirectorMetricBar('Storytelling Depth', analysis.health.storytellingDepth)}
+    </section>
+  `;
+}
+
 function getCreativeDirectorSections(activeConcept) {
   if (activeConcept) {
     const tagSummary = getSelectedTagsSummary();
@@ -2334,25 +2547,28 @@ function renderStoryboardCard(scene, index = 0) {
 
 function renderDirectorPanel(savedProducts = []) {
   const activeConcept = selectedConceptId ? getActiveConcept(savedProducts) : null;
+  const analysis = generateDirectorAnalysis({
+    projectGoal,
+    selectedProducts: savedProducts,
+    creativeSearchQuery,
+    selectedCreativeTags,
+    selectedConcept: activeConcept,
+    storyboard: generatedStoryboardScenes,
+  });
 
   return `
     <aside class="studio-panel director-panel" aria-label="AI Director Panel">
       <div class="studio-panel-heading">
-        <span class="studio-kicker">AI Director Panel</span>
-        <h2>Director Notes</h2>
-        <p>Mock guidance only. AI Director is not connected to generation APIs yet.</p>
+        <span class="studio-kicker">AI Director Engine</span>
+        <h2>AI Director Analysis</h2>
+        <p>Mock strategy engine only. No AI API, chatbot, publishing, analytics, or backend call is connected.</p>
       </div>
       <div class="ai-thinking-indicator" aria-label="AI thinking visual placeholder">
         <span class="ai-thinking-orb" aria-hidden="true"></span>
-        <span>Living Creative Intelligence standby</span>
+        <span>Creative strategist mode · Mock analysis</span>
       </div>
-      <div class="director-section-list">
-        ${getCreativeDirectorSections(activeConcept).map((section) => `
-          <section class="director-section">
-            <h3>${escapeHtml(section.title)}</h3>
-            <p>${escapeHtml(section.body)}</p>
-          </section>
-        `).join('')}
+      <div class="director-analysis-list">
+        ${renderDirectorAnalysisPanel(analysis)}
       </div>
     </aside>
   `;
