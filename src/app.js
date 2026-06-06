@@ -3244,12 +3244,12 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
 function renderCreativeStudioShell(savedProducts) {
   return `
-    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio V2">
+    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio">
       <div class="creative-studio-hero">
         <div>
-          <span class="studio-kicker">NOVAFORGE Creative Studio V2</span>
-          <h1>AI Creative Operating System</h1>
-          <p>Goal First. Prompt Last. Search First. Library Hidden. Less Forms. More Canvas.</p>
+          <span class="studio-kicker">NOVAFORGE Creative Studio</span>
+          <h1>NOVAFORGE Creative Studio</h1>
+          <p>Goal first. Prompt last.</p>
         </div>
         <span class="studio-status-pill">${savedProducts.length} selected product(s) loaded</span>
       </div>
@@ -3283,20 +3283,20 @@ function renderLoadedProductCard(product) {
   `;
 }
 
-function renderSelectedProductsLoadedSection(savedProducts) {
+function renderProductContextBar(savedProducts) {
   const emptyState = savedProducts.length === 0
-    ? '<p class="studio-empty-note">No selected products loaded. Return to Product Command Center to select products before planning content.</p>'
+    ? '<p class="studio-empty-note">No selected products are loaded. Return to Product Command Center to select products before planning content.</p>'
     : '';
 
   return `
-    <section class="selected-products-loaded-section" id="product-context-bar" aria-label="Selected Products Loaded">
-      <div class="selected-products-loaded-heading">
+    <section class="product-context-bar" id="product-context-bar" aria-label="Product Context Bar">
+      <div class="product-context-bar-heading">
         <div>
-          <span class="studio-kicker">Section 1</span>
-          <h1>Selected Products Loaded</h1>
-          <p>Products passed from Product Command Center via existing localStorage/sessionStorage workflow.</p>
+          <span class="studio-kicker">product-context-bar</span>
+          <h1>Product Context Bar</h1>
+          <p>Selected products passed from Product Command Center via existing localStorage/sessionStorage workflow.</p>
         </div>
-        <div class="selected-products-loaded-actions">
+        <div class="product-context-bar-actions">
           <span class="studio-status-pill">${savedProducts.length} selected product(s)</span>
           <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
         </div>
@@ -3470,22 +3470,28 @@ function renderImageCreationWorkspace(savedProducts) {
   `;
 }
 
+function renderLegacyImageWorkspace(savedProducts) {
+  return `
+    <section class="legacy-image-workspace" id="legacy-image-workspace" aria-label="Legacy Image Workspace">
+      <div class="legacy-workspace-heading">
+        <span class="studio-kicker">Legacy Image Workspace</span>
+        <h2>Legacy Image Workspace</h2>
+        <p>Existing image prompts, image jobs queue, and placeholder gallery remain available below the Creative Studio shell.</p>
+      </div>
+      ${renderImageCreationWorkspace(savedProducts)}
+    </section>
+  `;
+}
+
 function renderContentGeneratorLanding() {
   imageWorkspaceState = readImageWorkspaceState();
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
 
   return `
     <main class="creative-studio-page">
-      ${renderSelectedProductsLoadedSection(savedProducts)}
+      ${renderProductContextBar(savedProducts)}
       ${renderCreativeStudioShell(savedProducts)}
-      <section class="legacy-image-workspace" id="legacy-image-workspace" aria-label="Legacy Image Workspace">
-        <div class="legacy-workspace-heading">
-          <span class="studio-kicker">Legacy Image Workspace</span>
-          <h2>Legacy Image Workspace</h2>
-          <p>Existing image prompts, image jobs queue, and placeholder gallery remain available below the Creative Studio V2 shell.</p>
-        </div>
-        ${renderImageCreationWorkspace(savedProducts)}
-      </section>
+      ${renderLegacyImageWorkspace(savedProducts)}
       <a class="back-link back-button studio-back-link" href="/novaforge-studio-new/">Back to Product Command Center</a>
     </main>
   `;

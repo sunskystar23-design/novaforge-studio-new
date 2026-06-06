@@ -89,6 +89,22 @@ vm.runInContext(`
   comparedConceptId = 'premium-social-campaign';
 `, context);
 let html = vm.runInContext('renderContentGeneratorLanding()', context);
+const forbiddenLegacyStrings = [
+  'Selected Products ' + 'Loaded',
+  'AI Creative ' + 'Operating System',
+  'NOVAFORGE CREATIVE ' + 'STUDIO V2',
+  'NOVAFORGE Creative ' + 'Studio V2',
+];
+forbiddenLegacyStrings.forEach((legacyString) => {
+  if (html.includes(legacyString)) throw new Error(`Legacy Content Generator render string still visible: ${legacyString}`);
+  if (appSource.includes(legacyString)) throw new Error(`Legacy Content Generator render string still exists in src/app.js: ${legacyString}`);
+});
+if (!appSource.includes('renderProductContextBar(savedProducts)')) throw new Error('renderContentGeneratorLanding must call renderProductContextBar(savedProducts)');
+if (!appSource.includes('renderCreativeStudioShell(savedProducts)')) throw new Error('renderContentGeneratorLanding must call renderCreativeStudioShell(savedProducts)');
+if (!appSource.includes('renderLegacyImageWorkspace(savedProducts)')) throw new Error('renderContentGeneratorLanding must call renderLegacyImageWorkspace(savedProducts)');
+['Product Context Bar', 'product-context-bar', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
+  if (!html.includes(text)) throw new Error(`Missing updated Content Generator marker: ${text}`);
+});
 [
   'Concept Decision Bar',
   'Favorite',
