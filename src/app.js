@@ -3266,26 +3266,6 @@ function renderCreativeCanvasPanel(savedProducts = []) {
   `;
 }
 
-function renderCreativeStudioShell(savedProducts) {
-  return `
-    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio">
-      <div class="creative-studio-hero">
-        <div>
-          <span class="studio-kicker">NOVAFORGE Creative Studio</span>
-          <h1>NOVAFORGE Creative Studio</h1>
-          <p>Goal first. Prompt last.</p>
-        </div>
-        <span class="studio-status-pill">${savedProducts.length} selected product(s) loaded</span>
-      </div>
-      <div class="creative-studio-grid">
-        ${renderCreativeInputsPanel(savedProducts)}
-        ${renderCreativeCanvasPanel(savedProducts)}
-        ${renderDirectorPanel(savedProducts)}
-      </div>
-    </section>
-  `;
-}
-
 
 function renderProductContextBar(savedProducts) {
   const products = savedProducts.map((product) => normalizeProduct(product));
@@ -3490,7 +3470,11 @@ function renderContentGenerator() {
   return `
     <main class="creative-studio-page">
       ${renderProductContextBar(savedProducts)}
-      ${renderCreativeStudioShell(savedProducts)}
+      <div class="creative-studio-grid">
+        ${renderCreativeInputsPanel(savedProducts)}
+        ${renderCreativeCanvasPanel(savedProducts)}
+        ${renderDirectorPanel(savedProducts)}
+      </div>
       ${renderLegacyImageWorkspace(savedProducts)}
     </main>
   `;

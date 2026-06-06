@@ -86,7 +86,7 @@ assert.match(app, /pcb-left/);
 assert.match(app, /pcb-manage-btn/);
 const stepFlowReferences = app.match(/renderCreativeStepFlow/g) || [];
 assert.strictEqual(stepFlowReferences.length, 2);
-assert.doesNotMatch(app, /renderCreativeStudioShell[\s\S]*renderCreativeStepFlow[\s\S]*creative-studio-grid/);
+assert.doesNotMatch(app, /renderCreativeStudioShell/);
 assert.match(app, /renderCreativeCanvasPanel[\s\S]*renderCreativeStepFlow/);
 const conceptBoardIndex = rendered.indexOf('id="concept-board"');
 const guidanceStackIndex = rendered.indexOf('concept-guidance-stack');
@@ -108,10 +108,12 @@ assert.match(vm.runInContext('renderProductCommandCenter()', context), /Product 
 
 assert.match(app, /function renderContentGenerator/);
 assert.match(app, /renderProductContextBar\(savedProducts\)/);
-assert.match(app, /renderCreativeStudioShell\(savedProducts\)/);
+assert.match(app, /renderCreativeInputsPanel\(savedProducts\)/);
+assert.match(app, /renderCreativeCanvasPanel\(savedProducts\)/);
+assert.match(app, /renderDirectorPanel\(savedProducts\)/);
 assert.match(app, /renderLegacyImageWorkspace\(savedProducts\)/);
 assert.match(rendered, /product-context-bar/);
-assert.match(rendered, /NOVAFORGE Creative Studio/);
+assert.match(rendered, /creative-studio-grid/);
 assert.match(rendered, /creative-next-step-strip/);
 assert.match(rendered, /creative-step-flow/);
 assert.match(rendered, /concept-decision-bar/);

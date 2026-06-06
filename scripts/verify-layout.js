@@ -101,11 +101,13 @@ forbiddenLegacyStrings.forEach((legacyString) => {
 });
 if (!/function renderContentGenerator\s*\(/.test(appSource)) throw new Error('function renderContentGenerator must exist');
 if (!appSource.includes('renderProductContextBar(savedProducts)')) throw new Error('renderContentGenerator must call renderProductContextBar(savedProducts)');
-if (!appSource.includes('renderCreativeStudioShell(savedProducts)')) throw new Error('renderContentGenerator must call renderCreativeStudioShell(savedProducts)');
+if (appSource.includes('renderCreativeStudioShell')) throw new Error('renderCreativeStudioShell must be removed from active app source');
+if (!appSource.includes('renderCreativeInputsPanel(savedProducts)')) throw new Error('renderContentGenerator must call renderCreativeInputsPanel(savedProducts)');
+if (!appSource.includes('renderCreativeCanvasPanel(savedProducts)')) throw new Error('renderContentGenerator must call renderCreativeCanvasPanel(savedProducts)');
+if (!appSource.includes('renderDirectorPanel(savedProducts)')) throw new Error('renderContentGenerator must call renderDirectorPanel(savedProducts)');
 if (!appSource.includes('renderLegacyImageWorkspace(savedProducts)')) throw new Error('renderContentGenerator must call renderLegacyImageWorkspace(savedProducts)');
 const stepFlowReferences = appSource.match(/renderCreativeStepFlow/g) || [];
 if (stepFlowReferences.length !== 2) throw new Error(`Expected renderCreativeStepFlow definition plus one call, found ${stepFlowReferences.length}`);
-if (/renderCreativeStudioShell[\s\S]*renderCreativeStepFlow[\s\S]*creative-studio-grid/.test(appSource)) throw new Error('renderCreativeStepFlow must not be called in renderCreativeStudioShell before creative-studio-grid');
 if (!/renderCreativeCanvasPanel[\s\S]*renderCreativeStepFlow/.test(appSource)) throw new Error('renderCreativeStepFlow must be placed inside renderCreativeCanvasPanel');
 const conceptBoardIndex = html.indexOf('id="concept-board"');
 const guidanceStackIndex = html.indexOf('concept-guidance-stack');
@@ -114,7 +116,7 @@ const stepFlowIndex = html.indexOf('creative-step-flow');
 if (!(conceptBoardIndex > -1 && conceptBoardIndex < guidanceStackIndex && guidanceStackIndex < nextStepIndex && nextStepIndex < stepFlowIndex)) throw new Error('Creative Canvas order must be concept board, guidance stack, next step strip, then step flow');
 const canvasBeforeConcept = html.slice(html.indexOf('creative-canvas-panel'), conceptBoardIndex);
 if (canvasBeforeConcept.includes('creative-step-flow')) throw new Error('creative-step-flow must not be a direct canvas sibling before Concept Board');
-['product-context-bar', 'pcb-left', 'pcb-manage-btn', 'concept-guidance-stack', 'creative-next-step-strip', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
+['product-context-bar', 'pcb-left', 'pcb-manage-btn', 'concept-guidance-stack', 'creative-next-step-strip', 'creative-studio-grid'].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing updated Content Generator marker: ${text}`);
 });
 [

@@ -1102,14 +1102,8 @@ h1 {
   color: #eef2ff;
 }
 
-.creative-studio-shell {
-  display: grid;
-  gap: 22px;
-  max-width: 1640px;
-  margin: 0 auto;
-}
 
-.creative-studio-hero,
+
 .studio-panel,
 .studio-card,
 .legacy-image-workspace {
@@ -1119,23 +1113,10 @@ h1 {
   backdrop-filter: blur(22px);
 }
 
-.creative-studio-hero {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-radius: 32px;
-  padding: 24px;
-}
 
-.creative-studio-hero h1 {
-  margin-bottom: 8px;
-  color: #ffffff;
-  font-size: clamp(1.8rem, 4vw, 3.4rem);
-  letter-spacing: -0.06em;
-}
 
-.creative-studio-hero p,
+
+
 .studio-panel-heading p,
 .studio-section-heading p,
 .director-section p,
@@ -1156,16 +1137,7 @@ h1 {
   text-transform: uppercase;
 }
 
-.studio-status-pill {
-  border: 1px solid rgba(157, 245, 229, 0.26);
-  border-radius: 999px;
-  padding: 10px 14px;
-  background: rgba(20, 184, 166, 0.12);
-  color: #ccfbf1;
-  font-size: 0.84rem;
-  font-weight: 900;
-  white-space: nowrap;
-}
+
 
 .creative-studio-grid {
   display: grid;
@@ -1423,8 +1395,7 @@ h1 {
     padding: 16px;
   }
 
-  .creative-studio-hero,
-  .concept-card-footer,
+    .concept-card-footer,
   .storyboard-card-header {
     align-items: flex-start;
     flex-direction: column;
@@ -1487,7 +1458,6 @@ h1 {
   }
 }
 
-.creative-studio-hero,
 .studio-panel,
 .studio-card,
 .legacy-image-workspace {
@@ -1515,14 +1485,8 @@ h1 {
   box-shadow: 0 18px 58px rgba(0, 0, 0, 0.24), 0 0 34px rgba(157, 245, 229, 0.08);
 }
 
-.creative-studio-hero h1 {
-  max-width: 780px;
-  color: var(--nf-text-main);
-  font-size: clamp(1.95rem, 3.4vw, 3.35rem);
-  line-height: 0.98;
-}
 
-.creative-studio-hero p,
+
 .studio-panel-heading p,
 .studio-section-heading p,
 .director-section p,
@@ -1539,12 +1503,7 @@ h1 {
   color: var(--nf-success-mint);
 }
 
-.studio-status-pill {
-  border-color: rgba(157, 245, 229, 0.3);
-  background: linear-gradient(135deg, rgba(157, 245, 229, 0.14), rgba(96, 165, 250, 0.12));
-  color: #dffff8;
-  box-shadow: 0 0 28px rgba(157, 245, 229, 0.08);
-}
+
 
 .creative-studio-grid {
   grid-template-columns: minmax(260px, 0.76fr) minmax(460px, 1.62fr) minmax(280px, 0.88fr);
