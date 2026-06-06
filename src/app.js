@@ -1868,6 +1868,10 @@ function renderDirectorPanel() {
         <h2>Director Notes</h2>
         <p>Mock guidance only. AI Director is not connected to generation APIs yet.</p>
       </div>
+      <div class="ai-thinking-indicator" aria-label="AI thinking visual placeholder">
+        <span class="ai-thinking-orb" aria-hidden="true"></span>
+        <span>Living Creative Intelligence standby</span>
+      </div>
       <div class="director-section-list">
         ${directorPanelSections.map((section) => `
           <section class="director-section">
