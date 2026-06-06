@@ -1,0 +1,23 @@
+{
+  "id": "location_cafe",
+  "name": "Cafe",
+  "description": "Cozy cafe setting for relatable creator, lifestyle, review, and everyday product content.",
+  "keywords": [
+    "cafe",
+    "cozy",
+    "lifestyle",
+    "creator",
+    "urban",
+    "relatable"
+  ],
+  "prompt_fragments": [
+    "cozy cafe product lifestyle scene",
+    "creator seated at a cafe table with product",
+    "warm urban cafe atmosphere"
+  ],
+  "related_modules": [
+    "characters/female_creator.json",
+    "emotions/trust.json",
+    "styles/minimal.json"
+  ]
+}
