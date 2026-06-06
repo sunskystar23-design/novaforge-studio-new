@@ -2992,23 +2992,35 @@ function getStoryboardConceptLabel(savedProducts = []) {
   return `Storyboard based on: ${activeConcept?.title || 'Select a concept'}`;
 }
 
-function renderCreativeStepFlow(savedProducts = []) {
+function getCreativeNextStep(savedProducts = []) {
   const hasProducts = savedProducts.length > 0;
   const hasConcept = Boolean(lockedConceptId || selectedConceptId);
   const conceptComplete = Boolean(lockedConceptId);
   const storyboardComplete = generatedStoryboardScenes.length > 0;
   const promptPlanComplete = promptPlanBlocks.some((block) => block.status === 'ready');
-  const nextStep = !hasProducts
-    ? 'Review selected products loaded from Product Command Center'
-    : !hasConcept
-      ? 'Select a creative concept'
-      : !conceptComplete
-        ? 'Lock Direction before storyboard planning'
-        : !storyboardComplete
-          ? 'Generate storyboard from locked direction'
-          : !promptPlanComplete
-            ? 'Prepare or update Prompt Plan Builder'
-            : 'Review Legacy Image Workspace';
+
+  if (!hasProducts) return 'Review selected products loaded from Product Command Center';
+  if (!hasConcept) return 'Select a creative concept';
+  if (!conceptComplete) return 'Lock Direction before storyboard planning';
+  if (!storyboardComplete) return 'Generate storyboard from locked direction';
+  if (!promptPlanComplete) return 'Prepare or update Prompt Plan Builder';
+  return 'Review Legacy Image Workspace';
+}
+
+function renderCreativeCanvasNextStepStrip(savedProducts = []) {
+  return `
+    <div class="creative-next-step-strip">
+      <span>Next Step:</span>
+      <strong>${escapeHtml(getCreativeNextStep(savedProducts))}</strong>
+    </div>
+  `;
+}
+
+function renderCreativeStepFlow(savedProducts = []) {
+  const hasProducts = savedProducts.length > 0;
+  const conceptComplete = Boolean(lockedConceptId);
+  const storyboardComplete = generatedStoryboardScenes.length > 0;
+  const promptPlanComplete = promptPlanBlocks.some((block) => block.status === 'ready');
   const steps = [
     { label: '1 Goal', target: '#creative-inputs-panel', complete: hasProducts },
     { label: '2 Product', target: '#product-context-bar', complete: hasProducts },
@@ -3018,7 +3030,8 @@ function renderCreativeStepFlow(savedProducts = []) {
     { label: '6 Prompt Plan', target: '#ai-director-panel', complete: promptPlanComplete },
     { label: '7 Generate', target: '#legacy-image-workspace', complete: promptPlanComplete },
   ];
-  const activeStepIndex = Math.max(0, steps.findIndex((step) => !step.complete));
+  const incompleteStepIndex = steps.findIndex((step) => !step.complete);
+  const activeStepIndex = incompleteStepIndex === -1 ? steps.length - 1 : incompleteStepIndex;
 
   return `
     <div class="creative-step-flow" aria-label="Step Flow">
@@ -3030,7 +3043,6 @@ function renderCreativeStepFlow(savedProducts = []) {
           `;
         }).join('')}
       </div>
-      <p>Next Step: ${escapeHtml(nextStep)}</p>
     </div>
   `;
 }
@@ -3199,7 +3211,8 @@ function renderCreativeInputsPanel(savedProducts) {
 }
 
 function renderCreativeCanvasPanel(savedProducts = []) {
-  const renderCreativeStepFlow_renderCreativeCanvasPanel = renderCreativeStepFlow(savedProducts);
+  const stepFlowMarkup = renderCreativeStepFlow(savedProducts);
+  const nextStepStripMarkup = renderCreativeCanvasNextStepStrip(savedProducts);
   const concepts = getCreativeStudioConcepts(savedProducts);
   const storyboardCards = generatedStoryboardScenes.length > 0
     ? generatedStoryboardScenes.map(renderStoryboardCard).join('')
@@ -3215,7 +3228,8 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
   return `
     <div class="creative-canvas-panel studio-canvas-panel" aria-label="Creative Canvas">
-      ${renderCreativeStepFlow_renderCreativeCanvasPanel}
+      ${nextStepStripMarkup}
+      ${stepFlowMarkup}
       <section class="studio-card concept-board" id="concept-board">
         <div class="studio-section-heading">
           <span class="studio-kicker">Creative Canvas</span>

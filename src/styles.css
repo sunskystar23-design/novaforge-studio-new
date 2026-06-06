@@ -2496,6 +2496,25 @@ h1 {
   line-height: 1.4;
 }
 
+
+.creative-next-step-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid rgba(177, 139, 255, 0.16);
+  border-radius: 16px;
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.34);
+  color: var(--nf-text-muted);
+  font-size: 0.78rem;
+}
+
+.creative-next-step-strip strong {
+  color: var(--nf-text-main);
+  font-size: 0.82rem;
+}
+
 .concept-decision-bar,
 .creative-step-flow {
   display: grid;
