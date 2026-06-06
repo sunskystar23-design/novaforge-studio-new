@@ -709,18 +709,32 @@ function dedupeProducts(products) {
     .slice(0, maxSelectedProducts);
 }
 
-function readSelectedProducts() {
+function readProductsFromStorage(storage) {
   try {
-    const savedProducts = JSON.parse(localStorage.getItem(productStorageKey) || '[]');
+    const savedProducts = JSON.parse(storage.getItem(productStorageKey) || '[]');
     return Array.isArray(savedProducts) ? dedupeProducts(savedProducts) : [];
   } catch {
     return [];
   }
 }
 
+function readSelectedProducts() {
+  return readProductsFromStorage(localStorage);
+}
+
+function readContentGeneratorProducts() {
+  const sessionProducts = readProductsFromStorage(sessionStorage);
+  return sessionProducts.length > 0 ? sessionProducts : readSelectedProducts();
+}
+
 function saveSelectedProducts() {
   selectedProducts = dedupeProducts(selectedProducts);
   localStorage.setItem(productStorageKey, JSON.stringify(selectedProducts.slice(0, maxSelectedProducts)));
+}
+
+function saveSelectedProductsForContentGenerator() {
+  saveSelectedProducts();
+  sessionStorage.setItem(productStorageKey, JSON.stringify(selectedProducts.slice(0, maxSelectedProducts)));
 }
 
 function syncSelectedProductsFromStorage() {
@@ -1204,7 +1218,7 @@ function renderProductCommandCenter() {
 }
 
 function renderContentGeneratorLanding() {
-  const savedProducts = readSelectedProducts().map((product) => normalizeProduct(product));
+  const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
   const productCards = savedProducts
     .map(
       (product) => `
@@ -1214,7 +1228,7 @@ function renderContentGeneratorLanding() {
             <span class="platform-chip">${escapeHtml(product.platform)}</span>
             <h3>${escapeHtml(product.title)}</h3>
             <p>${escapeHtml(product.price)}</p>
-            <a class="source-url" href="${escapeHtml(product.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(product.sourceUrl)}</a>
+            <a class="source-url" href="${escapeHtml(product.sourceUrl)}" target="_blank" rel="noreferrer">product_url: ${escapeHtml(product.sourceUrl)}</a>
           </div>
         </article>
       `,
@@ -1238,7 +1252,7 @@ function renderContentGeneratorLanding() {
         </div>
         <div class="content-products-grid">${emptyState}${productCards}</div>
       </section>
-      <a class="back-link" href="../">Back to Product Command Center</a>
+      <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
     </main>
   `;
 }
@@ -1358,8 +1372,10 @@ function attachProductCommandCenterEvents() {
   });
 
   document.querySelector('#continue-to-content')?.addEventListener('click', () => {
-    saveSelectedProducts();
-    window.location.href = 'content-generator/';
+    if (selectedProducts.length === 0) return;
+
+    saveSelectedProductsForContentGenerator();
+    window.location.href = '/novaforge-studio-new/content-generator/';
   });
 }
 
