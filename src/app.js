@@ -196,6 +196,10 @@ let supabaseConfigError = '';
 let csvImportState = createCsvImportState();
 let imageWorkspaceState = readImageWorkspaceState();
 let selectedProducts = readSelectedProducts();
+let creativeSearchQuery = '';
+let expandedKeywords = [];
+let selectedCreativeTags = [];
+let creativeSearchNotice = '';
 
 function platformImage(platform, title = 'Product Preview') {
   const colors = {
@@ -1765,6 +1769,151 @@ function renderProductCommandCenter() {
 }
 
 
+
+function uniqueCreativeTags(tags) {
+  const seenTags = new Set();
+
+  return tags.filter((tag) => {
+    const normalizedTag = String(tag).trim();
+    const tagKey = normalizedTag.toLowerCase();
+    if (!normalizedTag || seenTags.has(tagKey)) return false;
+    seenTags.add(tagKey);
+    return true;
+  });
+}
+
+function expandCreativeKeywords(query) {
+  const normalizedQuery = String(query || '').toLowerCase();
+  const matchedTags = [];
+
+  if (normalizedQuery.includes('luxury')) {
+    matchedTags.push('Luxury', 'Premium', 'Editorial', 'Luxury Lighting', 'Luxury Piano', 'High-End Product Film');
+  }
+
+  if (normalizedQuery.includes('asmr')) {
+    matchedTags.push('ASMR', 'Silent Product Film', 'Soft Sound Design', 'Ambient', 'Texture Close-Up', 'Slow Motion');
+  }
+
+  if (normalizedQuery.includes('beach')) {
+    matchedTags.push('Beach', 'Ocean', 'Island', 'Golden Hour', 'Ocean Waves', 'Resort', 'Relaxing');
+  }
+
+  if (normalizedQuery.includes('podcast')) {
+    matchedTags.push('Podcast', 'Interview', 'Storytelling', 'Voice Direction', 'Long Form', 'Conversation');
+  }
+
+  if (normalizedQuery.includes('fashion')) {
+    matchedTags.push('Fashion Campaign', 'Editorial Fashion', 'Runway', 'Model Movement', 'Studio Lighting');
+  }
+
+  if (normalizedQuery.includes('product')) {
+    matchedTags.push('Product Showcase', 'Hero Shot', 'Feature Highlight', 'Conversion Ad', 'Product Focus');
+  }
+
+  if (normalizedQuery.includes('viral')) {
+    matchedTags.push('Viral Hook', 'Fast Cut', 'Trend Format', 'Bold Text', 'High Energy');
+  }
+
+  return uniqueCreativeTags(matchedTags.length > 0
+    ? matchedTags
+    : ['Creative Direction', 'Storytelling', 'Cinematic', 'Product Focus', 'Social Content']);
+}
+
+function expandCreativeSearchIdeas() {
+  expandedKeywords = expandCreativeKeywords(creativeSearchQuery);
+  selectedCreativeTags = selectedCreativeTags.filter((selectedTag) => expandedKeywords.includes(selectedTag));
+  creativeSearchNotice = creativeSearchQuery.trim()
+    ? `Expanded ${expandedKeywords.length} creative direction tag(s) from your search.`
+    : 'No search text yet, so NOVAFORGE suggested a balanced creative starter set.';
+  render();
+}
+
+function toggleCreativeTag(tag) {
+  if (selectedCreativeTags.includes(tag)) {
+    selectedCreativeTags = selectedCreativeTags.filter((selectedTag) => selectedTag !== tag);
+  } else {
+    selectedCreativeTags = [...selectedCreativeTags, tag];
+  }
+
+  creativeSearchNotice = selectedCreativeTags.length > 0
+    ? `${selectedCreativeTags.length} creative tag(s) selected for AI Director guidance.`
+    : 'All creative tags deselected. Select tags to shape the mock direction.';
+  render();
+}
+
+function renderCreativeTagChip(tag, selected = false, removable = false) {
+  return `
+    <button
+      class="creative-tag-chip ${selected ? 'selected' : ''} ${removable ? 'removable' : ''}"
+      data-creative-tag="${escapeHtml(tag)}"
+      type="button"
+    >
+      <span>${escapeHtml(tag)}</span>${removable ? '<span aria-hidden="true">×</span>' : ''}
+    </button>
+  `;
+}
+
+function getSelectedTagsSummary() {
+  return selectedCreativeTags.length > 0 ? selectedCreativeTags.join(', ') : expandedKeywords.slice(0, 3).join(', ') || 'cinematic product direction';
+}
+
+function getCreativeDirectorSections() {
+  if (expandedKeywords.length === 0) return directorPanelSections;
+
+  const tagSummary = getSelectedTagsSummary();
+  const expandedSummary = expandedKeywords.slice(0, 5).join(', ');
+
+  return [
+    {
+      title: 'Recommended Direction',
+      body: `Based on your search, NOVAFORGE suggests a cinematic concept using ${tagSummary}.`,
+    },
+    {
+      title: 'Alternative Concepts',
+      body: `Explore variations around ${expandedSummary}, then narrow the canvas by selecting only the tags that support the strongest creative goal.`,
+    },
+    {
+      title: 'Creative Suggestions',
+      body: `Let ${tagSummary} guide visual pacing, camera rhythm, audio texture, and how product proof appears before any prompt is written.`,
+    },
+    {
+      title: 'Trend Insights',
+      body: `Mock insight: ${expandedKeywords[0]} concepts perform best when the first scene establishes mood before showing product details.`,
+    },
+  ];
+}
+
+function getCreativeStudioConcepts() {
+  if (selectedCreativeTags.includes('Podcast')) {
+    return [
+      {
+        title: 'Podcast Story Concept',
+        description: 'A voice-led narrative format built around conversation, product context, and a long-form storytelling rhythm.',
+        confidence: '91%',
+      },
+      ...creativeStudioConcepts.slice(0, 2),
+    ];
+  }
+
+  return creativeStudioConcepts.map((concept) => {
+    if (selectedCreativeTags.includes('ASMR') && concept.title === 'ASMR Product Film') {
+      return {
+        ...concept,
+        description: 'Selected ASMR tags sharpen this into a slow, sensory product film with texture close-ups and soft sound design.',
+      };
+    }
+
+    if (selectedCreativeTags.includes('Luxury') && concept.title === 'Luxury Documentary') {
+      return {
+        ...concept,
+        description: 'Selected luxury tags push this toward premium lighting, editorial pacing, and a high-end product film tone.',
+      };
+    }
+
+    return concept;
+  });
+}
+
 function renderProjectGoalSelector() {
   return `
     <label class="studio-field">
@@ -1777,11 +1926,32 @@ function renderProjectGoalSelector() {
 }
 
 function renderCreativeSearchBar() {
+  const keywordChips = expandedKeywords.length > 0
+    ? expandedKeywords.map((tag) => renderCreativeTagChip(tag, selectedCreativeTags.includes(tag))).join('')
+    : '<p class="creative-search-hint">Expand ideas to reveal hidden creative library tags.</p>';
+  const selectedChips = selectedCreativeTags.length > 0
+    ? `<div class="selected-creative-tags" aria-label="Selected Creative Tags">
+        <span>Selected Creative Tags</span>
+        <div class="creative-tag-list selected-tags-list">
+          ${selectedCreativeTags.map((tag) => renderCreativeTagChip(tag, true, true)).join('')}
+        </div>
+      </div>`
+    : '';
+  const notice = creativeSearchNotice ? `<p class="creative-search-notice">${escapeHtml(creativeSearchNotice)}</p>` : '';
+
   return `
-    <label class="studio-field creative-search-field">
-      <span>Creative Search</span>
-      <input type="search" placeholder="Describe the creative direction, e.g. Luxury ASMR Vanilla Campaign" />
-    </label>
+    <section class="creative-search-module" aria-label="Creative Search and Keyword Expansion">
+      <label class="studio-field creative-search-field">
+        <span>Creative Search</span>
+        <input id="creative-search-input" type="search" placeholder="Describe the creative direction, e.g. Luxury ASMR Vanilla Campaign" value="${escapeHtml(creativeSearchQuery)}" />
+      </label>
+      <button class="creative-expand-button" id="expand-creative-ideas" type="button">Expand Ideas</button>
+      ${notice}
+      <div class="creative-tag-list" aria-label="Expanded Keyword Tags">
+        ${keywordChips}
+      </div>
+      ${selectedChips}
+    </section>
   `;
 }
 
@@ -1873,7 +2043,7 @@ function renderDirectorPanel() {
         <span>Living Creative Intelligence standby</span>
       </div>
       <div class="director-section-list">
-        ${directorPanelSections.map((section) => `
+        ${getCreativeDirectorSections().map((section) => `
           <section class="director-section">
             <h3>${escapeHtml(section.title)}</h3>
             <p>${escapeHtml(section.body)}</p>
@@ -1922,7 +2092,7 @@ function renderCreativeCanvasPanel() {
           <p>Three possible directions before prompts are written.</p>
         </div>
         <div class="concept-card-grid">
-          ${creativeStudioConcepts.map(renderConceptCard).join('')}
+          ${getCreativeStudioConcepts().map(renderConceptCard).join('')}
         </div>
       </section>
       ${renderBlueprintPanel()}
@@ -2143,6 +2313,16 @@ function renderContentGeneratorLanding() {
 
 function attachContentGeneratorEvents() {
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
+
+  document.querySelector('#creative-search-input')?.addEventListener('input', (event) => {
+    creativeSearchQuery = event.target.value;
+  });
+
+  document.querySelector('#expand-creative-ideas')?.addEventListener('click', expandCreativeSearchIdeas);
+
+  document.querySelectorAll('[data-creative-tag]').forEach((tagButton) => {
+    tagButton.addEventListener('click', () => toggleCreativeTag(tagButton.dataset.creativeTag));
+  });
 
   document.querySelectorAll('[data-generate-prompts-product-id]').forEach((button) => {
     button.addEventListener('click', () => {
