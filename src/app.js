@@ -2928,6 +2928,52 @@ function renderCreativeStudioShell(savedProducts) {
   `;
 }
 
+
+function renderLoadedProductCard(product) {
+  const sourceUrl = product.sourceUrl || product.productUrl || '';
+  const sourceLink = sourceUrl
+    ? `<a class="source-url" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(sourceUrl)}</a>`
+    : '<span class="source-url unavailable">No source URL available</span>';
+
+  return `
+    <article class="loaded-product-card">
+      <img alt="" src="${escapeHtml(product.image)}" />
+      <div>
+        <span class="platform-chip">${escapeHtml(product.platform)}</span>
+        <h3>${escapeHtml(product.title)}</h3>
+        <p>${escapeHtml(product.price)}</p>
+        ${sourceLink}
+      </div>
+    </article>
+  `;
+}
+
+function renderSelectedProductsLoadedSection(savedProducts) {
+  const emptyState = savedProducts.length === 0
+    ? '<p class="studio-empty-note">No selected products loaded. Return to Product Command Center to select products before planning content.</p>'
+    : '';
+
+  return `
+    <section class="selected-products-loaded-section" aria-label="Selected Products Loaded">
+      <div class="selected-products-loaded-heading">
+        <div>
+          <span class="studio-kicker">Section 1</span>
+          <h1>Selected Products Loaded</h1>
+          <p>Products passed from Product Command Center via existing localStorage/sessionStorage workflow.</p>
+        </div>
+        <div class="selected-products-loaded-actions">
+          <span class="studio-status-pill">${savedProducts.length} selected product(s)</span>
+          <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
+        </div>
+      </div>
+      ${emptyState}
+      <div class="loaded-products-grid">
+        ${savedProducts.map(renderLoadedProductCard).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function renderContentProductCard(product) {
   return `
     <article class="content-product-card">
@@ -3095,6 +3141,7 @@ function renderContentGeneratorLanding() {
 
   return `
     <main class="creative-studio-page">
+      ${renderSelectedProductsLoadedSection(savedProducts)}
       ${renderCreativeStudioShell(savedProducts)}
       <section class="legacy-image-workspace" aria-label="Legacy Image Workspace">
         <div class="legacy-workspace-heading">

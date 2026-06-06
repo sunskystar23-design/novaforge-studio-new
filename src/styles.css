@@ -2411,3 +2411,106 @@ h1 {
     grid-template-columns: 1fr;
   }
 }
+
+.selected-products-loaded-section {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: var(--nf-radius-card);
+  padding: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(157, 245, 229, 0.08), transparent 42%),
+    rgba(15, 23, 42, 0.58);
+  box-shadow: var(--nf-shadow-card);
+}
+
+.selected-products-loaded-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.selected-products-loaded-heading h1 {
+  margin: 4px 0 6px;
+  color: var(--nf-text-main);
+  font-size: clamp(1.28rem, 2vw, 1.7rem);
+  line-height: 1.1;
+}
+
+.selected-products-loaded-heading p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--nf-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.selected-products-loaded-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.loaded-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.loaded-product-card {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.loaded-product-card img {
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.loaded-product-card h3 {
+  margin: 7px 0 4px;
+  color: var(--nf-text-main);
+  font-size: 0.94rem;
+  line-height: 1.25;
+}
+
+.loaded-product-card p {
+  margin: 0 0 5px;
+  color: var(--nf-success-mint);
+  font-weight: 900;
+}
+
+.loaded-product-card .source-url {
+  display: block;
+  overflow: hidden;
+  color: var(--nf-text-muted);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loaded-product-card .source-url.unavailable {
+  color: rgba(148, 163, 184, 0.72);
+}
+
+@media (max-width: 720px) {
+  .selected-products-loaded-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .selected-products-loaded-actions {
+    justify-content: flex-start;
+  }
+}
