@@ -1,0 +1,23 @@
+{
+  "id": "style_luxury",
+  "name": "Luxury",
+  "description": "Premium, aspirational creative direction with refined details, elegant pacing, and high perceived value.",
+  "keywords": [
+    "luxury",
+    "premium",
+    "elegant",
+    "high-end",
+    "aspirational",
+    "polished"
+  ],
+  "prompt_fragments": [
+    "premium editorial composition",
+    "refined luxury product styling",
+    "elegant high-end visual tone"
+  ],
+  "related_modules": [
+    "emotions/premium.json",
+    "lighting/studio_key_light",
+    "color_grading/warm_gold"
+  ]
+}

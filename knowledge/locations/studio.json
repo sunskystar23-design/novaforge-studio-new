@@ -1,0 +1,23 @@
+{
+  "id": "location_studio",
+  "name": "Studio",
+  "description": "Controlled studio environment for clean product visuals, expert demonstrations, and premium ad shots.",
+  "keywords": [
+    "studio",
+    "controlled",
+    "product shot",
+    "clean",
+    "professional",
+    "lighting"
+  ],
+  "prompt_fragments": [
+    "controlled studio product setup",
+    "clean studio backdrop with product focus",
+    "professional studio lighting composition"
+  ],
+  "related_modules": [
+    "styles/minimal.json",
+    "styles/luxury.json",
+    "characters/expert.json"
+  ]
+}
