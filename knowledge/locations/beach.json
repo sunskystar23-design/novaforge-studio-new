@@ -1,0 +1,23 @@
+{
+  "id": "location_beach",
+  "name": "Beach",
+  "description": "Bright outdoor coastal environment for lifestyle, travel, wellness, and summer product stories.",
+  "keywords": [
+    "beach",
+    "summer",
+    "outdoor",
+    "coastal",
+    "sunlight",
+    "travel"
+  ],
+  "prompt_fragments": [
+    "sunlit beach lifestyle scene",
+    "coastal outdoor product setting",
+    "bright summer beach atmosphere"
+  ],
+  "related_modules": [
+    "emotions/fun.json",
+    "lighting/natural_sunlight",
+    "styles/viral.json"
+  ]
+}

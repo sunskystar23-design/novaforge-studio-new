@@ -1,0 +1,23 @@
+{
+  "id": "style_minimal",
+  "name": "Minimal",
+  "description": "Clean, focused creative direction with simple compositions, generous spacing, and product-first clarity.",
+  "keywords": [
+    "minimal",
+    "clean",
+    "simple",
+    "modern",
+    "focused",
+    "white space"
+  ],
+  "prompt_fragments": [
+    "clean minimal product composition",
+    "simple modern visual style",
+    "uncluttered product-first framing"
+  ],
+  "related_modules": [
+    "locations/studio.json",
+    "typography/clean_sans",
+    "lighting/softbox"
+  ]
+}
