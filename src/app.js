@@ -7,6 +7,69 @@ const csvImportColumns = ['platform', 'target', 'title', 'price', 'commission', 
 const supabaseImportChunkSize = 100;
 const supabaseFetchPageSize = 1000;
 const importLinks = Array.from({ length: maxSelectedProducts }, () => '');
+
+const aiEngineIntegrations = [
+  { name: 'Google Flow API', status: 'Placeholder only', notes: 'Backend endpoint required before requests can be sent.' },
+  { name: 'Grok API', status: 'Placeholder only', notes: 'Store API credentials in backend services only.' },
+  { name: 'Nano Banana', status: 'Placeholder only', notes: 'Provider connector not implemented in frontend.' },
+  { name: 'ChatGPT / OpenAI', status: 'Placeholder only', notes: 'Use backend or Supabase Edge Functions for secrets.' },
+  { name: 'Gemini', status: 'Placeholder only', notes: 'Backend endpoint required for real generation.' },
+];
+
+const platformAccountGroups = [
+  {
+    platform: 'TikTok',
+    maxAccounts: 4,
+    accounts: [
+      { accountName: 'TikTok Creator Account 1', status: 'Not connected', permissions: 'Drafts, media upload, publish approval', autoPostAllowed: false },
+      { accountName: 'TikTok Creator Account 2', status: 'Not connected', permissions: 'Drafts only', autoPostAllowed: false },
+      { accountName: 'TikTok Creator Account 3', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+      { accountName: 'TikTok Creator Account 4', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+    ],
+  },
+  {
+    platform: 'Shopee',
+    maxAccounts: 4,
+    accounts: [
+      { accountName: 'Shopee Store Account 1', status: 'Not connected', permissions: 'Affiliate content drafts', autoPostAllowed: false },
+      { accountName: 'Shopee Store Account 2', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+      { accountName: 'Shopee Store Account 3', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+      { accountName: 'Shopee Store Account 4', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+    ],
+  },
+  {
+    platform: 'Lazada',
+    maxAccounts: 4,
+    accounts: [
+      { accountName: 'Lazada Store Account 1', status: 'Not connected', permissions: 'Affiliate content drafts', autoPostAllowed: false },
+      { accountName: 'Lazada Store Account 2', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+      { accountName: 'Lazada Store Account 3', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+      { accountName: 'Lazada Store Account 4', status: 'Not connected', permissions: 'Awaiting OAuth', autoPostAllowed: false },
+    ],
+  },
+];
+
+const postingRules = [
+  { label: 'Auto Post', value: 'Off' },
+  { label: 'Require Approval Before Post', value: 'On' },
+  { label: 'Save Draft Only', value: 'On' },
+  { label: 'Random Hashtags', value: 'Off' },
+];
+
+const platformCaptionRules = [
+  { platform: 'TikTok', rule: 'Short hook first, product benefit second, hashtags last.' },
+  { platform: 'Shopee', rule: 'Mention product use case, price/value cue, and store-safe CTA.' },
+  { platform: 'Lazada', rule: 'Use concise promo framing with product title and benefit-focused CTA.' },
+];
+
+const hashtagGeneratorSettings = [
+  { label: 'Random hashtags', value: 'Off' },
+  { label: 'Niche hashtags', value: 'On' },
+  { label: 'Product hashtags', value: 'On' },
+  { label: 'Platform hashtags', value: 'On' },
+  { label: 'Max hashtag count', value: '12' },
+];
+
 const appScriptUrl = (typeof document !== 'undefined' && document.currentScript?.src) || 'src/app.js';
 const defaultDataSourceConfig = {
   SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
@@ -1445,6 +1508,134 @@ function renderSelectedProducts() {
   `;
 }
 
+
+function renderAiEngineCard(engine) {
+  return `
+    <article class="integration-card">
+      <div>
+        <span class="platform-chip">AI Engine</span>
+        <h3>${escapeHtml(engine.name)}</h3>
+        <p>${escapeHtml(engine.notes)}</p>
+      </div>
+      <strong>${escapeHtml(engine.status)}</strong>
+    </article>
+  `;
+}
+
+function renderPlatformAccountCard(account, platform) {
+  return `
+    <article class="integration-card account-card">
+      <div>
+        <span class="platform-chip">${escapeHtml(platform)}</span>
+        <h3>${escapeHtml(account.accountName)}</h3>
+        <p>Permissions: ${escapeHtml(account.permissions)}</p>
+      </div>
+      <dl class="settings-meta">
+        <div><dt>Connection Status</dt><dd>${escapeHtml(account.status)}</dd></div>
+        <div><dt>Auto Post Allowed</dt><dd>${account.autoPostAllowed ? 'true' : 'false'}</dd></div>
+      </dl>
+    </article>
+  `;
+}
+
+function renderSettingsPill(item) {
+  return `
+    <article class="settings-pill">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.value)}</strong>
+    </article>
+  `;
+}
+
+function renderSettingsIntegrationsPage() {
+  const aiEngineCards = aiEngineIntegrations.map(renderAiEngineCard).join('');
+  const accountGroups = platformAccountGroups
+    .map((group) => `
+      <section class="settings-subsection">
+        <div class="section-heading compact-heading">
+          <h3>${escapeHtml(group.platform)} accounts</h3>
+          <span>Max ${group.maxAccounts}</span>
+        </div>
+        <div class="settings-grid">${group.accounts.map((account) => renderPlatformAccountCard(account, group.platform)).join('')}</div>
+      </section>
+    `)
+    .join('');
+  const postingRuleCards = postingRules.map(renderSettingsPill).join('');
+  const captionRuleCards = platformCaptionRules
+    .map((rule) => `
+      <article class="settings-rule-card">
+        <span class="platform-chip">${escapeHtml(rule.platform)}</span>
+        <p>${escapeHtml(rule.rule)}</p>
+      </article>
+    `)
+    .join('');
+  const hashtagCards = hashtagGeneratorSettings.map(renderSettingsPill).join('');
+
+  return `
+    <main class="page-shell settings-page">
+      <section class="hero-panel">
+        <div>
+          <p class="eyebrow">Settings / Integrations</p>
+          <h1>⚙️ Settings / Integrations</h1>
+          <p class="description">Backend-ready integration settings for AI engines, platform accounts, posting rules, and hashtag generation.</p>
+        </div>
+        <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
+      </section>
+
+      <section class="settings-warning">
+        <strong>Security warning:</strong>
+        Real OAuth tokens, API keys, platform credentials, and posting secrets must be stored in backend services or Supabase Edge Functions. This page uses placeholders only and does not post content.
+      </section>
+
+      <section class="settings-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">AI Engine</p>
+            <h2>AI Engine Integrations</h2>
+          </div>
+          <span>Placeholders only</span>
+        </div>
+        <div class="settings-grid">${aiEngineCards}</div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Platform Accounts</p>
+            <h2>Platform Accounts</h2>
+          </div>
+          <span>4 accounts max per platform</span>
+        </div>
+        ${accountGroups}
+      </section>
+
+      <section class="settings-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Posting Rules</p>
+            <h2>Posting Rules</h2>
+          </div>
+          <span>Posting disabled</span>
+        </div>
+        <div class="settings-grid compact-settings-grid">${postingRuleCards}</div>
+        <p class="source-label">Platform-specific caption rules are placeholders for backend posting workflows and do not publish content.</p>
+        <div class="caption-rule-grid">${captionRuleCards}</div>
+      </section>
+
+      <section class="settings-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Hashtag Generator</p>
+            <h2>Hashtag Generator Settings</h2>
+          </div>
+          <span>Local settings only</span>
+        </div>
+        <div class="settings-grid compact-settings-grid">${hashtagCards}</div>
+      </section>
+    </main>
+  `;
+}
+
 function renderProductCommandCenter() {
   return `
     <main class="page-shell">
@@ -1454,6 +1645,7 @@ function renderProductCommandCenter() {
           <h1>🎯 Product Command Center</h1>
           <p class="description">ค้นหาและคัดเลือกสินค้าที่ต้องการนำไปสร้างคอนเทนต์</p>
         </div>
+        <a class="back-link back-button" href="/novaforge-studio-new/settings/">Settings / Integrations</a>
       </section>
 
       <section class="workspace-grid import-workspace">
@@ -1821,6 +2013,11 @@ function render() {
     return;
   }
 
+  if (window.location.pathname.replace(/\/$/, '').endsWith('/settings')) {
+    root.innerHTML = renderSettingsIntegrationsPage();
+    return;
+  }
+
   syncSelectedProductsFromStorage();
   root.innerHTML = renderProductCommandCenter();
   attachProductCommandCenterEvents();
@@ -1831,7 +2028,7 @@ window.addEventListener('pageshow', () => {
   render();
 });
 
-if (window.location.pathname.replace(/\/$/, '').endsWith('/content-generator')) {
+if (window.location.pathname.replace(/\/$/, '').endsWith('/content-generator') || window.location.pathname.replace(/\/$/, '').endsWith('/settings')) {
   render();
 } else {
   loadDataSourceConfig();

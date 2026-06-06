@@ -966,3 +966,111 @@ h1 {
   font-size: 0.88rem;
   font-weight: 850;
 }
+
+.settings-page {
+  display: grid;
+  gap: 24px;
+}
+
+.settings-warning,
+.settings-section {
+  border: 1px solid rgba(95, 118, 160, 0.18);
+  border-radius: 28px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 48px rgba(45, 73, 118, 0.1);
+}
+
+.settings-warning {
+  border-color: rgba(200, 30, 58, 0.25);
+  background: #fff5f6;
+  color: #9f1239;
+  font-weight: 850;
+}
+
+.settings-grid,
+.caption-rule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.settings-subsection {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.integration-card,
+.settings-rule-card,
+.settings-pill {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #dde6fb;
+  border-radius: 20px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.integration-card h3,
+.integration-card p,
+.settings-rule-card p {
+  margin-bottom: 0;
+}
+
+.integration-card strong {
+  color: #3b4cff;
+  font-weight: 950;
+}
+
+.account-card {
+  align-content: space-between;
+}
+
+.settings-meta {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.settings-meta div {
+  display: grid;
+  gap: 3px;
+}
+
+.settings-meta dt {
+  color: #7b869a;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settings-meta dd {
+  margin: 0;
+  color: #172033;
+  font-weight: 850;
+}
+
+.settings-pill {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.settings-pill span {
+  color: #647089;
+  font-weight: 850;
+}
+
+.settings-pill strong {
+  color: #0f766e;
+  font-weight: 950;
+}
+
+.compact-settings-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.caption-rule-grid {
+  margin-top: 14px;
+}
