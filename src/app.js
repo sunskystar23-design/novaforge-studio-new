@@ -207,6 +207,8 @@ let storyboardVariation = 0;
 let storyboardNotice = '';
 let directorActionNotice = '';
 let promptPlanVisible = false;
+let promptPlanBlocks = [];
+let promptPlanNotice = '';
 
 function platformImage(platform, title = 'Product Preview') {
   const colors = {
@@ -2154,7 +2156,7 @@ function getDirectorActionNotice(actionId) {
     'adjust-storyboard': 'AI Director recommends improving scene pacing.',
     'suggest-visual-style': 'AI Director suggests stronger visual language based on selected tags.',
     'suggest-audio-direction': 'AI Director suggests clarifying rhythm, sound texture, and emotional pacing.',
-    'prepare-prompt-plan': 'Prompt Plan placeholder prepared.',
+    'prepare-prompt-plan': 'Prompt Plan Builder prepared.',
     'improve-conversion-angle': 'AI Director recommends strengthening product proof and CTA clarity.',
   };
 
@@ -2163,35 +2165,99 @@ function getDirectorActionNotice(actionId) {
 
 function handleDirectorAction(actionId) {
   directorActionNotice = getDirectorActionNotice(actionId);
-  if (actionId === 'prepare-prompt-plan') promptPlanVisible = true;
+
+  if (actionId === 'prepare-prompt-plan') {
+    const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
+    const selectedProduct = getPrimarySelectedProduct(savedProducts);
+    const selectedConcept = getActiveConcept(savedProducts);
+    const directorAnalysis = generateDirectorAnalysis({
+      projectGoal,
+      selectedProducts: savedProducts,
+      creativeSearchQuery,
+      selectedCreativeTags,
+      selectedConcept,
+      storyboard: generatedStoryboardScenes,
+    });
+
+    promptPlanBlocks = createPromptPlanBlocks({
+      selectedProduct,
+      selectedConcept,
+      selectedCreativeTags,
+      storyboard: generatedStoryboardScenes,
+      directorAnalysis,
+    });
+    promptPlanVisible = true;
+    promptPlanNotice = 'Prompt Plan Builder created. Edit each block and save when ready.';
+  }
+
   render();
 }
 
-function createPromptPlanPlaceholder({ selectedProducts: products = [], selectedCreativeTags: tags = [], selectedConcept, directorAnalysis } = {}) {
-  const selectedProduct = getPrimarySelectedProduct(products);
-  const productTitle = selectedProduct?.title || 'selected product';
+function createPromptPlanBlocks({ selectedProduct, selectedConcept, selectedCreativeTags: tags = [], storyboard = [], directorAnalysis } = {}) {
+  const normalizedProduct = selectedProduct ? normalizeProduct(selectedProduct) : null;
+  const productTitle = normalizedProduct?.title || 'selected product';
   const conceptTitle = selectedConcept?.title || 'active concept';
   const tagSummary = tags.length > 0 ? tags.join(', ') : 'cinematic product focus';
+  const storyboardSummary = storyboard.length > 0 ? `${storyboard.length} scene storyboard` : 'storyboard direction pending';
   const primaryOpportunity = directorAnalysis?.opportunities?.[0] || `Product showcase angle for ${productTitle}`;
 
   return [
     {
-      label: 'Image Prompt Direction',
-      value: `Create premium still frames for ${productTitle} using ${conceptTitle}, ${tagSummary}, and clear product visibility.`,
+      id: 'image-prompt-direction',
+      title: 'Image Prompt Direction',
+      description: 'Still-image creative direction for product visuals, campaign frames, and placeholder gallery planning.',
+      promptText: `Create premium still frames for ${productTitle} using ${conceptTitle}, ${tagSummary}, and clear product visibility. Prioritize refined lighting, strong composition, and brand-safe product detail.`,
+      status: 'pending',
     },
     {
-      label: 'Video Prompt Direction',
-      value: `Build a short sequence from the storyboard with visible product proof, emotional pacing, and ${primaryOpportunity}.`,
+      id: 'video-prompt-direction',
+      title: 'Video Prompt Direction',
+      description: 'Video structure direction for future generation tools, edits, and storyboard-aware motion planning.',
+      promptText: `Build a short sequence for ${productTitle} from the ${storyboardSummary}. Use visible product proof, emotional pacing, and ${primaryOpportunity}.`,
+      status: 'pending',
     },
     {
-      label: 'Audio Direction',
-      value: selectedConcept?.audioDirection || 'Use soft pacing, clean transitions, and brand-safe sound texture.',
+      id: 'audio-direction',
+      title: 'Audio Direction',
+      description: 'Sound, rhythm, pacing, and voice guidance for the creative concept.',
+      promptText: selectedConcept?.audioDirection || 'Use soft pacing, clean transitions, and brand-safe sound texture that supports the product story.',
+      status: 'pending',
     },
     {
-      label: 'Caption Direction',
-      value: `Lead with the creative hook, explain the product benefit, and close with a clear next step for ${productTitle}.`,
+      id: 'caption-direction',
+      title: 'Caption Direction',
+      description: 'Caption and copy direction for the product story without creating publishing automation.',
+      promptText: `Lead with the creative hook for ${productTitle}, explain the product benefit, support ${directorAnalysis?.recommendedDirection || conceptTitle}, and close with a clear next step.`,
+      status: 'pending',
     },
   ];
+}
+
+function resetPromptPlanBuilder() {
+  promptPlanVisible = false;
+  promptPlanBlocks = [];
+  promptPlanNotice = '';
+}
+
+function savePromptPlanBlock(blockId, promptText) {
+  promptPlanBlocks = promptPlanBlocks.map((block) => (
+    block.id === blockId
+      ? { ...block, promptText: promptText.trim(), status: 'ready' }
+      : block
+  ));
+  promptPlanNotice = 'Prompt Plan block saved locally and marked ready.';
+  render();
+}
+
+function getPromptPlanSummary() {
+  const totalBlocks = promptPlanBlocks.length;
+  const readyBlocks = promptPlanBlocks.filter((block) => block.status === 'ready').length;
+
+  return {
+    totalBlocks,
+    readyBlocks,
+    pendingBlocks: Math.max(totalBlocks - readyBlocks, 0),
+  };
 }
 
 function renderDirectorActions(actions = []) {
@@ -2221,28 +2287,44 @@ function renderDirectorActions(actions = []) {
   `;
 }
 
-function renderPromptPlanPlaceholder({ selectedProducts: products = [], selectedCreativeTags: tags = [], selectedConcept, directorAnalysis } = {}) {
+function renderPromptPlanBuilder() {
   if (!promptPlanVisible) return '';
 
-  const promptPlanItems = createPromptPlanPlaceholder({
-    selectedProducts: products,
-    selectedCreativeTags: tags,
-    selectedConcept,
-    directorAnalysis,
-  });
+  const summary = getPromptPlanSummary();
+  const notice = promptPlanNotice ? `<p class="prompt-plan-notice">${escapeHtml(promptPlanNotice)}</p>` : '';
+  const emptyState = promptPlanBlocks.length === 0
+    ? '<p class="studio-empty-note">Click Prepare Prompt Plan to create editable prompt direction blocks.</p>'
+    : '';
 
   return `
-    <section class="prompt-plan-placeholder" aria-label="Prompt Plan Placeholder">
+    <section class="prompt-plan-placeholder prompt-plan-builder" aria-label="Prompt Plan Builder">
       <div class="director-actions-heading">
-        <span class="studio-kicker">Prompt Plan Placeholder</span>
+        <span class="studio-kicker">Prompt Plan Builder</span>
         <h3>Prompt Plan</h3>
-        <p>Mock plan only. Real image, video, audio, and caption generation are not connected.</p>
+        <p>Editable local plan only. Real image, video, audio, and caption generation are not connected.</p>
       </div>
+      <div class="prompt-plan-summary" aria-label="Prompt Plan Summary">
+        <span>Total Blocks <strong>${summary.totalBlocks}</strong></span>
+        <span>Ready Blocks <strong>${summary.readyBlocks}</strong></span>
+        <span>Pending Blocks <strong>${summary.pendingBlocks}</strong></span>
+      </div>
+      ${notice}
+      ${emptyState}
       <div class="prompt-plan-grid">
-        ${promptPlanItems.map((item) => `
-          <article>
-            <span>${escapeHtml(item.label)}</span>
-            <p>${escapeHtml(item.value)}</p>
+        ${promptPlanBlocks.map((block) => `
+          <article class="prompt-plan-block ${block.status === 'ready' ? 'ready' : 'pending'}">
+            <div class="prompt-plan-block-heading">
+              <div>
+                <span>${escapeHtml(block.title)}</span>
+                <p>${escapeHtml(block.description)}</p>
+              </div>
+              <strong>${escapeHtml(block.status)}</strong>
+            </div>
+            <label class="prompt-plan-textarea-label">
+              <span>Prompt Text</span>
+              <textarea data-prompt-plan-block-input="${escapeHtml(block.id)}" rows="5">${escapeHtml(block.promptText)}</textarea>
+            </label>
+            <button type="button" data-save-prompt-plan-block-id="${escapeHtml(block.id)}">${block.status === 'ready' ? 'Update' : 'Save'}</button>
           </article>
         `).join('')}
       </div>
@@ -2437,7 +2519,7 @@ function selectCreativeConcept(conceptId) {
   storyboardNotice = 'Concept selected. Generate a storyboard to simulate the AI Director workflow.';
   creativeSearchNotice = 'Concept selected. Creative Blueprint and AI Director guidance updated.';
   directorActionNotice = '';
-  promptPlanVisible = false;
+  resetPromptPlanBuilder();
   render();
 }
 
@@ -2565,7 +2647,7 @@ function createStoryboardFromCurrentConcept(regenerate = false) {
   });
   storyboardNotice = `${regenerate ? 'Regenerated' : 'Generated'} ${generatedStoryboardScenes.length} storyboard scene(s) for ${activeConcept.title}.`;
   directorActionNotice = '';
-  promptPlanVisible = false;
+  resetPromptPlanBuilder();
   render();
 }
 
@@ -2748,12 +2830,7 @@ function renderDirectorPanel(savedProducts = []) {
           storyboard: generatedStoryboardScenes,
           directorAnalysis: analysis,
         }))}
-        ${renderPromptPlanPlaceholder({
-          selectedProducts: savedProducts,
-          selectedCreativeTags,
-          selectedConcept: activeConcept,
-          directorAnalysis: analysis,
-        })}
+        ${renderPromptPlanBuilder()}
       </div>
     </aside>
   `;
@@ -3043,7 +3120,7 @@ function attachContentGeneratorEvents() {
     storyboardNotice = '';
     creativeSearchNotice = 'Project goal updated. Concept Board and Creative Blueprint refreshed.';
     directorActionNotice = '';
-    promptPlanVisible = false;
+    resetPromptPlanBuilder();
     render();
   });
 
@@ -3062,6 +3139,14 @@ function attachContentGeneratorEvents() {
 
   document.querySelectorAll('[data-director-action-id]').forEach((actionButton) => {
     actionButton.addEventListener('click', () => handleDirectorAction(actionButton.dataset.directorActionId));
+  });
+
+  document.querySelectorAll('[data-save-prompt-plan-block-id]').forEach((saveButton) => {
+    saveButton.addEventListener('click', () => {
+      const blockId = saveButton.dataset.savePromptPlanBlockId;
+      const input = document.querySelector(`[data-prompt-plan-block-input="${blockId}"]`);
+      savePromptPlanBlock(blockId, input?.value || '');
+    });
   });
 
   document.querySelectorAll('[data-creative-tag]').forEach((tagButton) => {
