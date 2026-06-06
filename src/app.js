@@ -3279,10 +3279,10 @@ function renderProductContextBar(savedProducts) {
     <div class="product-context-bar" id="product-context-bar" aria-label="product-context-bar">
       <div class="pcb-left">
         <span class="pcb-label">Primary Product</span>
-        <span class="pcb-name">${escapeHtml(primaryName)}</span>
+        <strong class="pcb-name">${escapeHtml(primaryName)}</strong>
         <span class="pcb-meta">${products.length} products · ${escapeHtml(primaryPlatform)}</span>
       </div>
-      <button class="pcb-manage-btn" id="manage-products-context" onclick="scrollToTop()" type="button">Manage Products</button>
+      <button class="pcb-manage-btn" id="manage-products-context" type="button">Manage Products</button>
     </div>
   `;
 }
