@@ -70,6 +70,106 @@ const hashtagGeneratorSettings = [
   { label: 'Max hashtag count', value: '12' },
 ];
 
+
+const creativeProjectGoals = [
+  'Sell Product',
+  'Create Podcast',
+  'Create Commercial',
+  'Create Documentary',
+  'Create MV',
+  'Create Educational Content',
+  'Custom Project',
+];
+
+const creativeReferenceTypes = [
+  'Product Reference',
+  'Character Reference',
+  'Style Reference',
+  'Brand Reference',
+  'Location Reference',
+];
+
+const creativeStudioConcepts = [
+  {
+    title: 'Luxury Documentary',
+    description: 'A cinematic product story that makes the offer feel premium, intentional, and emotionally grounded.',
+    confidence: '94%',
+  },
+  {
+    title: 'ASMR Product Film',
+    description: 'A sensory-first sequence built around texture, sound cues, close-up detail, and slow product reveals.',
+    confidence: '89%',
+  },
+  {
+    title: 'Editorial Fashion Campaign',
+    description: 'A high-style visual direction with curated poses, refined locations, and brand-forward composition.',
+    confidence: '86%',
+  },
+];
+
+const creativeBlueprintItems = [
+  { label: 'Goal', value: 'Sell Product with premium narrative tension' },
+  { label: 'Audience', value: 'Style-aware buyers comparing quality and value' },
+  { label: 'Style', value: 'Soft luxury, editorial documentary, restrained motion' },
+  { label: 'Emotion', value: 'Trust, desire, calm confidence' },
+  { label: 'Character', value: 'Creator-led product expert with natural presence' },
+  { label: 'Audio Direction', value: 'Warm ASMR textures, subtle room tone, elegant pacing' },
+];
+
+const creativeStoryboardScenes = [
+  {
+    scene: 'Scene 1',
+    duration: '0:00–0:04',
+    camera: 'Slow macro push-in',
+    motion: 'Product reveal through soft foreground blur',
+    audio: 'Low room tone + tactile product sound',
+    description: 'Introduce the product as a premium object before showing any selling points.',
+  },
+  {
+    scene: 'Scene 2',
+    duration: '0:04–0:10',
+    camera: 'Handheld creator close-up',
+    motion: 'Small natural hand movement',
+    audio: 'Whispered hook with clean foley accents',
+    description: 'Creator frames the emotional reason the product matters in everyday life.',
+  },
+  {
+    scene: 'Scene 3',
+    duration: '0:10–0:18',
+    camera: 'Detail inserts + overhead composition',
+    motion: 'Rhythmic cuts between feature details',
+    audio: 'Soft clicks, fabric, packaging, or usage sounds',
+    description: 'Show three visual proof points with no crowded text or hard-sell energy.',
+  },
+  {
+    scene: 'Scene 4',
+    duration: '0:18–0:24',
+    camera: 'Locked hero frame',
+    motion: 'Subtle light sweep and final product settle',
+    audio: 'Elegant resolve with short CTA breath',
+    description: 'End with a calm conversion moment that feels curated rather than forced.',
+  },
+];
+
+const directorPanelSections = [
+  {
+    title: 'Recommended Direction',
+    body: 'Lead with a premium product truth, then let sensory details prove value before the call-to-action.',
+  },
+  {
+    title: 'Alternative Concepts',
+    body: 'Try creator documentary, silent luxury unboxing, or fast social comparison if the audience needs proof quickly.',
+  },
+  {
+    title: 'Creative Suggestions',
+    body: 'Use fewer captions, tighter close-ups, warm shadows, and one memorable audio texture tied to product handling.',
+  },
+  {
+    title: 'Trend Insights',
+    body: 'Soft-sell creator films and sensory product demos are strong fits for premium commerce without feeling like ads.',
+  },
+];
+
 const appScriptUrl = (typeof document !== 'undefined' && document.currentScript?.src) || 'src/app.js';
 const defaultDataSourceConfig = {
   SUPABASE_URL: 'https://YOUR_PROJECT_ID.supabase.co',
@@ -1664,6 +1764,197 @@ function renderProductCommandCenter() {
   `;
 }
 
+
+function renderProjectGoalSelector() {
+  return `
+    <label class="studio-field">
+      <span>Project Goal</span>
+      <select aria-label="Project Goal Selector">
+        ${creativeProjectGoals.map((goal) => `<option>${escapeHtml(goal)}</option>`).join('')}
+      </select>
+    </label>
+  `;
+}
+
+function renderCreativeSearchBar() {
+  return `
+    <label class="studio-field creative-search-field">
+      <span>Creative Search</span>
+      <input type="search" placeholder="Describe the creative direction, e.g. Luxury ASMR Vanilla Campaign" />
+    </label>
+  `;
+}
+
+function renderReferenceDropzonePlaceholder(referenceType) {
+  return `
+    <article class="reference-placeholder">
+      <span>${escapeHtml(referenceType)}</span>
+      <p>Reference placeholder</p>
+    </article>
+  `;
+}
+
+function renderSelectedProductContext(product) {
+  const normalizedProduct = normalizeProduct(product);
+
+  return `
+    <article class="studio-product-context-card">
+      <img alt="" src="${escapeHtml(normalizedProduct.image)}" />
+      <div>
+        <span>${escapeHtml(normalizedProduct.platform)}</span>
+        <strong>${escapeHtml(normalizedProduct.title)}</strong>
+      </div>
+    </article>
+  `;
+}
+
+function renderConceptCard(concept) {
+  return `
+    <article class="concept-card">
+      <div>
+        <span class="studio-kicker">Concept</span>
+        <h3>${escapeHtml(concept.title)}</h3>
+        <p>${escapeHtml(concept.description)}</p>
+      </div>
+      <div class="concept-card-footer">
+        <span>Confidence score ${escapeHtml(concept.confidence)}</span>
+        <button type="button">Select</button>
+      </div>
+    </article>
+  `;
+}
+
+function renderBlueprintPanel() {
+  return `
+    <section class="studio-card blueprint-panel">
+      <div class="studio-section-heading">
+        <span class="studio-kicker">Creative Blueprint Placeholder</span>
+        <h2>Creative Blueprint</h2>
+      </div>
+      <div class="blueprint-grid">
+        ${creativeBlueprintItems.map((item) => `
+          <article>
+            <span>${escapeHtml(item.label)}</span>
+            <p>${escapeHtml(item.value)}</p>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderStoryboardCard(scene) {
+  return `
+    <article class="storyboard-card">
+      <div class="storyboard-card-header">
+        <h3>${escapeHtml(scene.scene)}</h3>
+        <span>${escapeHtml(scene.duration)}</span>
+      </div>
+      <dl>
+        <div><dt>Camera</dt><dd>${escapeHtml(scene.camera)}</dd></div>
+        <div><dt>Motion</dt><dd>${escapeHtml(scene.motion)}</dd></div>
+        <div><dt>Audio</dt><dd>${escapeHtml(scene.audio)}</dd></div>
+      </dl>
+      <p>${escapeHtml(scene.description)}</p>
+    </article>
+  `;
+}
+
+function renderDirectorPanel() {
+  return `
+    <aside class="studio-panel director-panel" aria-label="AI Director Panel">
+      <div class="studio-panel-heading">
+        <span class="studio-kicker">AI Director Panel</span>
+        <h2>Director Notes</h2>
+        <p>Mock guidance only. AI Director is not connected to generation APIs yet.</p>
+      </div>
+      <div class="director-section-list">
+        ${directorPanelSections.map((section) => `
+          <section class="director-section">
+            <h3>${escapeHtml(section.title)}</h3>
+            <p>${escapeHtml(section.body)}</p>
+          </section>
+        `).join('')}
+      </div>
+    </aside>
+  `;
+}
+
+function renderCreativeInputsPanel(savedProducts) {
+  const productContext = savedProducts.length > 0
+    ? savedProducts.map(renderSelectedProductContext).join('')
+    : '<p class="studio-empty-note">No selected products found. Return to Product Command Center to add product context.</p>';
+
+  return `
+    <aside class="studio-panel creative-inputs-panel" aria-label="Creative Inputs">
+      <div class="studio-panel-heading">
+        <span class="studio-kicker">Left Panel</span>
+        <h2>Creative Inputs</h2>
+        <p>Goal first. Search first. Library hidden.</p>
+      </div>
+      ${renderProjectGoalSelector()}
+      ${renderCreativeSearchBar()}
+      <section class="studio-input-section">
+        <h3>References</h3>
+        <div class="reference-placeholder-grid">
+          ${creativeReferenceTypes.map(renderReferenceDropzonePlaceholder).join('')}
+        </div>
+      </section>
+      <section class="studio-input-section">
+        <h3>Selected Product Context</h3>
+        <div class="studio-product-context-list">${productContext}</div>
+      </section>
+    </aside>
+  `;
+}
+
+function renderCreativeCanvasPanel() {
+  return `
+    <section class="studio-canvas-panel" aria-label="Creative Canvas">
+      <section class="studio-card concept-board">
+        <div class="studio-section-heading">
+          <span class="studio-kicker">Creative Canvas</span>
+          <h2>Concept Board</h2>
+          <p>Three possible directions before prompts are written.</p>
+        </div>
+        <div class="concept-card-grid">
+          ${creativeStudioConcepts.map(renderConceptCard).join('')}
+        </div>
+      </section>
+      ${renderBlueprintPanel()}
+      <section class="studio-card storyboard-panel">
+        <div class="studio-section-heading">
+          <span class="studio-kicker">Storyboard Placeholder</span>
+          <h2>Storyboard System</h2>
+        </div>
+        <div class="storyboard-grid">
+          ${creativeStoryboardScenes.map(renderStoryboardCard).join('')}
+        </div>
+      </section>
+    </section>
+  `;
+}
+
+function renderCreativeStudioShell(savedProducts) {
+  return `
+    <section class="creative-studio-shell" aria-label="NOVAFORGE Creative Studio V2">
+      <div class="creative-studio-hero">
+        <div>
+          <span class="studio-kicker">NOVAFORGE Creative Studio V2</span>
+          <h1>AI Creative Operating System</h1>
+          <p>Goal First. Prompt Last. Search First. Library Hidden. Less Forms. More Canvas.</p>
+        </div>
+        <span class="studio-status-pill">${savedProducts.length} selected product(s) loaded</span>
+      </div>
+      <div class="creative-studio-grid">
+        ${renderCreativeInputsPanel(savedProducts)}
+        ${renderCreativeCanvasPanel()}
+        ${renderDirectorPanel()}
+      </div>
+    </section>
+  `;
+}
+
 function renderContentProductCard(product) {
   return `
     <article class="content-product-card">
@@ -1828,27 +2119,19 @@ function renderImageCreationWorkspace(savedProducts) {
 function renderContentGeneratorLanding() {
   imageWorkspaceState = readImageWorkspaceState();
   const savedProducts = readContentGeneratorProducts().map((product) => normalizeProduct(product));
-  const productCards = savedProducts.map(renderContentProductCard).join('');
-  const emptyState = savedProducts.length === 0 ? '<p class="empty-state">No selected products found. Go back and select products first.</p>' : '';
 
   return `
-    <main class="page-shell content-landing">
-      <section class="hero-panel">
-        <div>
-          <p class="eyebrow">Content Generator</p>
-          <h1>Selected Products</h1>
-          <p class="description">${savedProducts.length} product(s) ready for the next workflow step.</p>
+    <main class="creative-studio-page">
+      ${renderCreativeStudioShell(savedProducts)}
+      <section class="legacy-image-workspace" aria-label="Legacy Image Workspace">
+        <div class="legacy-workspace-heading">
+          <span class="studio-kicker">Legacy Image Workspace</span>
+          <h2>Legacy Image Workspace</h2>
+          <p>Existing image prompts, image jobs queue, and placeholder gallery remain available below the Creative Studio V2 shell.</p>
         </div>
+        ${renderImageCreationWorkspace(savedProducts)}
       </section>
-      <section class="results-section">
-        <div class="section-heading">
-          <h2>Selected Products</h2>
-          <span>${savedProducts.length}/${maxSelectedProducts}</span>
-        </div>
-        <div class="content-products-grid">${emptyState}${productCards}</div>
-      </section>
-      ${renderImageCreationWorkspace(savedProducts)}
-      <a class="back-link back-button" href="/novaforge-studio-new/">Back to Product Command Center</a>
+      <a class="back-link back-button studio-back-link" href="/novaforge-studio-new/">Back to Product Command Center</a>
     </main>
   `;
 }
