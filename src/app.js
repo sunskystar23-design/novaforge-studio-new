@@ -2349,27 +2349,53 @@ function getPromptPlanSummary() {
   };
 }
 
+function getDirectorActionGroup(action) {
+  const actionType = action.actionType || '';
+
+  if (['Concept Direction', 'Conversion Strategy'].includes(actionType)) return 'Strategy';
+  if (['Visual Direction', 'Audio Direction'].includes(actionType)) return 'Visual Direction';
+  return 'Production Prep';
+}
+
+function renderDirectorActionCard(action) {
+  return `
+    <article class="director-action-card priority-${escapeHtml(action.priority.toLowerCase())}">
+      <div>
+        <span>${escapeHtml(action.actionType)} · ${escapeHtml(action.priority)} Priority</span>
+        <h4>${escapeHtml(action.title)}</h4>
+        <p>${escapeHtml(action.description)}</p>
+      </div>
+      <button type="button" data-director-action-id="${escapeHtml(action.id)}">${escapeHtml(action.buttonLabel)}</button>
+    </article>
+  `;
+}
+
 function renderDirectorActions(actions = []) {
   const notice = directorActionNotice ? `<p class="director-action-notice">${escapeHtml(directorActionNotice)}</p>` : '';
+  const actionGroups = ['Strategy', 'Visual Direction', 'Production Prep'].map((groupName) => ({
+    groupName,
+    actions: actions.filter((action) => getDirectorActionGroup(action) === groupName),
+  })).filter((group) => group.actions.length > 0);
 
   return `
     <section class="director-actions-section" aria-label="AI Director Actions">
       <div class="director-actions-heading">
         <span class="studio-kicker">AI Director Actions</span>
         <h3>Recommended Next Actions</h3>
-        <p>Local mock actions only. Clicking an action updates planning context without calling an API.</p>
+        <p>Grouped local next steps only. Buttons update planning context without calling an API.</p>
       </div>
       ${notice}
-      <div class="director-action-grid">
-        ${actions.map((action) => `
-          <article class="director-action-card priority-${escapeHtml(action.priority.toLowerCase())}">
-            <div>
-              <span>${escapeHtml(action.actionType)} · ${escapeHtml(action.priority)} Priority</span>
-              <h4>${escapeHtml(action.title)}</h4>
-              <p>${escapeHtml(action.description)}</p>
+      <div class="director-action-groups">
+        ${actionGroups.map((group) => `
+          <section class="director-action-group" data-director-action-group="${escapeHtml(group.groupName)}" aria-label="${escapeHtml(group.groupName)} actions">
+            <div class="director-action-group-heading">
+              <span>${escapeHtml(group.groupName)}</span>
+              <small>${group.actions.length} step${group.actions.length === 1 ? '' : 's'}</small>
             </div>
-            <button type="button" data-director-action-id="${escapeHtml(action.id)}">${escapeHtml(action.buttonLabel)}</button>
-          </article>
+            <div class="director-action-grid">
+              ${group.actions.map(renderDirectorActionCard).join('')}
+            </div>
+          </section>
         `).join('')}
       </div>
     </section>
@@ -2386,38 +2412,41 @@ function renderPromptPlanBuilder() {
     : '';
 
   return `
-    <section class="prompt-plan-placeholder prompt-plan-builder" aria-label="Prompt Plan Builder">
-      <div class="director-actions-heading">
+    <details class="prompt-plan-placeholder prompt-plan-builder compact-prompt-plan" aria-label="Prompt Plan Builder" open>
+      <summary class="prompt-plan-summary-toggle">
         <span class="studio-kicker">Prompt Plan Builder</span>
-        <h3>Prompt Plan</h3>
-        <p>Editable local plan only. Real image, video, audio, and caption generation are not connected.</p>
-      </div>
-      <div class="prompt-plan-summary" aria-label="Prompt Plan Summary">
-        <span>Total Blocks <strong>${summary.totalBlocks}</strong></span>
-        <span>Ready Blocks <strong>${summary.readyBlocks}</strong></span>
-        <span>Pending Blocks <strong>${summary.pendingBlocks}</strong></span>
-      </div>
-      ${notice}
-      ${emptyState}
-      <div class="prompt-plan-grid">
-        ${promptPlanBlocks.map((block) => `
-          <article class="prompt-plan-block ${block.status === 'ready' ? 'ready' : 'pending'}">
-            <div class="prompt-plan-block-heading">
-              <div>
-                <span>${escapeHtml(block.title)}</span>
-                <p>${escapeHtml(block.description)}</p>
+        <strong>Prompt Plan</strong>
+        <small>${summary.readyBlocks}/${summary.totalBlocks} ready</small>
+      </summary>
+      <div class="prompt-plan-body">
+        <p class="prompt-plan-helper">Editable local plan only. Real image, video, audio, and caption generation are not connected.</p>
+        <div class="prompt-plan-summary" aria-label="Prompt Plan Summary">
+          <span>Total Blocks <strong>${summary.totalBlocks}</strong></span>
+          <span>Ready Blocks <strong>${summary.readyBlocks}</strong></span>
+          <span>Pending Blocks <strong>${summary.pendingBlocks}</strong></span>
+        </div>
+        ${notice}
+        ${emptyState}
+        <div class="prompt-plan-grid">
+          ${promptPlanBlocks.map((block) => `
+            <article class="prompt-plan-block ${block.status === 'ready' ? 'ready' : 'pending'}">
+              <div class="prompt-plan-block-heading">
+                <div>
+                  <span>${escapeHtml(block.title)}</span>
+                  <p>${escapeHtml(block.description)}</p>
+                </div>
+                <strong>${escapeHtml(block.status)}</strong>
               </div>
-              <strong>${escapeHtml(block.status)}</strong>
-            </div>
-            <label class="prompt-plan-textarea-label">
-              <span>Prompt Text</span>
-              <textarea data-prompt-plan-block-input="${escapeHtml(block.id)}" rows="5">${escapeHtml(block.promptText)}</textarea>
-            </label>
-            <button type="button" data-save-prompt-plan-block-id="${escapeHtml(block.id)}">${block.status === 'ready' ? 'Update' : 'Save'}</button>
-          </article>
-        `).join('')}
+              <label class="prompt-plan-textarea-label">
+                <span>Prompt Text</span>
+                <textarea data-prompt-plan-block-input="${escapeHtml(block.id)}" rows="4">${escapeHtml(block.promptText)}</textarea>
+              </label>
+              <button type="button" data-save-prompt-plan-block-id="${escapeHtml(block.id)}">${block.status === 'ready' ? 'Update' : 'Save'}</button>
+            </article>
+          `).join('')}
+        </div>
       </div>
-    </section>
+    </details>
   `;
 }
 
@@ -2887,16 +2916,57 @@ function renderProductContextBar(savedProducts = []) {
   `;
 }
 
+function getCreativeCanvasNextStep() {
+  const hasCreativeSearch = creativeSearchQuery.trim().length > 0;
+  const hasCreativeTags = selectedCreativeTags.length > 0;
+
+  if (!hasCreativeSearch && !hasCreativeTags) {
+    return 'Start by describing the creative direction or expand ideas.';
+  }
+
+  if (!selectedConceptId) {
+    return 'Select one concept direction to continue.';
+  }
+
+  if (generatedStoryboardScenes.length === 0) {
+    return 'Generate or review the storyboard.';
+  }
+
+  return 'Review AI Director suggestions or prepare a prompt plan.';
+}
+
+function renderCreativeCanvasNextStepStrip() {
+  return `
+    <section class="creative-next-step-strip" aria-label="Creative Canvas Next Step">
+      <span>Next Step</span>
+      <p>${escapeHtml(getCreativeCanvasNextStep())}</p>
+    </section>
+  `;
+}
+
+function getConceptFitReason(concept) {
+  const tagSummary = selectedCreativeTags.length > 0
+    ? selectedCreativeTags.slice(0, 2).join(' + ')
+    : projectGoal;
+
+  return `Fits ${tagSummary} with ${concept.style} and a ${concept.contentFormat.toLowerCase()} structure.`;
+}
+
 function renderConceptCard(concept) {
   const conceptSelected = selectedConceptId === concept.id;
+  const selectedBadge = conceptSelected ? '<span class="selected-direction-badge">Selected Direction</span>' : '';
 
   return `
-    <article class="concept-card ${conceptSelected ? 'selected' : ''}">
-      <div>
-        <span class="studio-kicker">Concept</span>
-        <h3>${escapeHtml(concept.title)}</h3>
-        <p>${escapeHtml(concept.description)}</p>
+    <article class="concept-card ${conceptSelected ? 'selected' : ''}" aria-label="${escapeHtml(concept.title)} concept${conceptSelected ? ' selected' : ''}">
+      <div class="concept-card-heading">
+        <div>
+          <span class="studio-kicker">Concept</span>
+          <h3>${escapeHtml(concept.title)}</h3>
+        </div>
+        ${selectedBadge}
       </div>
+      <p>${escapeHtml(concept.description)}</p>
+      <p class="concept-fit-reason"><strong>Why it fits:</strong> ${escapeHtml(getConceptFitReason(concept))}</p>
       <dl class="concept-meta">
         <div><dt>Style</dt><dd>${escapeHtml(concept.style)}</dd></div>
         <div><dt>Format</dt><dd>${escapeHtml(concept.contentFormat)}</dd></div>
@@ -3032,9 +3102,14 @@ function renderCreativeInputsPanel() {
 
 function renderCreativeCanvasPanel(savedProducts = []) {
   const concepts = getCreativeStudioConcepts(savedProducts);
-  const storyboardCards = generatedStoryboardScenes.length > 0
+  const activeConcept = selectedConceptId ? getActiveConcept(savedProducts) : null;
+  const storyboardReady = generatedStoryboardScenes.length > 0;
+  const storyboardCards = storyboardReady
     ? generatedStoryboardScenes.map(renderStoryboardCard).join('')
-    : '<p class="empty-state storyboard-empty-state">Select a concept, then generate a storyboard to replace this placeholder.</p>';
+    : `<div class="storyboard-empty-state compact-empty-state">
+        <strong>Storyboard will appear after concept selection.</strong>
+        <p>${selectedConceptId ? 'Generate the storyboard to connect scenes with the selected concept.' : 'Choose a concept direction above to unlock the local storyboard mock.'}</p>
+      </div>`;
   const storyboardActions = selectedConceptId
     ? `<div class="storyboard-actions">
         <button class="creative-expand-button" id="generate-storyboard" type="button">Generate Storyboard</button>
@@ -3042,9 +3117,16 @@ function renderCreativeCanvasPanel(savedProducts = []) {
       </div>`
     : '<p class="creative-search-hint">Select a concept to unlock storyboard generation.</p>';
   const notice = storyboardNotice ? `<p class="creative-search-notice">${escapeHtml(storyboardNotice)}</p>` : '';
+  const durationIndicator = storyboardReady
+    ? `<span class="storyboard-duration-pill">Total ${escapeHtml(getStoryboardEstimatedDuration())}</span>`
+    : '';
+  const conceptLabel = activeConcept
+    ? `<span class="storyboard-concept-link">Concept: ${escapeHtml(activeConcept.title)}</span>`
+    : '<span class="storyboard-concept-link muted">No concept selected</span>';
 
   return `
     <section class="studio-canvas-panel" aria-label="Creative Canvas">
+      ${renderCreativeCanvasNextStepStrip()}
       <section class="studio-card concept-board">
         <div class="studio-section-heading">
           <span class="studio-kicker">Creative Canvas</span>
@@ -3062,11 +3144,12 @@ function renderCreativeCanvasPanel(savedProducts = []) {
             <span class="studio-kicker">Storyboard Generator Mock</span>
             <h2>Storyboard System</h2>
             <p>Mock scenes are generated from project goal, creative tags, selected concept, and selected products.</p>
+            <div class="storyboard-context-row">${conceptLabel}${durationIndicator}</div>
           </div>
           ${storyboardActions}
         </div>
         ${notice}
-        <div class="storyboard-grid">
+        <div class="storyboard-grid ${storyboardReady ? 'storyboard-flow-grid' : 'storyboard-empty-grid'}">
           ${storyboardCards}
         </div>
       </section>
