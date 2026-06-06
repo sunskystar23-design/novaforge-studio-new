@@ -2613,7 +2613,7 @@ h1 {
   gap: 8px;
 }
 
-.step-flow-list span,
+.step-flow-list button,
 .concept-state-badge {
   border: 1px solid rgba(226, 232, 240, 0.12);
   border-radius: 999px;
@@ -2624,9 +2624,17 @@ h1 {
   font-weight: 950;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  cursor: pointer;
 }
 
-.step-flow-list span.complete,
+.step-flow-list button:hover,
+.step-flow-list button:focus-visible {
+  border-color: rgba(157, 245, 229, 0.3);
+  color: var(--nf-text-main);
+  outline: none;
+}
+
+.step-flow-list button.complete,
 .concept-state-badge.locked-direction {
   border-color: rgba(157, 245, 229, 0.32);
   background: rgba(157, 245, 229, 0.1);

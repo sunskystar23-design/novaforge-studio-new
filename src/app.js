@@ -2999,7 +2999,7 @@ function renderCreativeStepFlow(savedProducts = []) {
   const storyboardComplete = generatedStoryboardScenes.length > 0;
   const promptPlanComplete = promptPlanBlocks.some((block) => block.status === 'ready');
   const nextStep = !hasProducts
-    ? 'Load selected products from Product Command Center'
+    ? 'Review selected products loaded from Product Command Center'
     : !hasConcept
       ? 'Select a creative concept'
       : !conceptComplete
@@ -3010,16 +3010,21 @@ function renderCreativeStepFlow(savedProducts = []) {
             ? 'Prepare or update Prompt Plan Builder'
             : 'Review Legacy Image Workspace';
   const steps = [
-    ['Products', hasProducts],
-    ['Concept', conceptComplete],
-    ['Storyboard', storyboardComplete],
-    ['Prompt Plan', promptPlanComplete],
+    { label: 'Products', target: '#product-context-bar', complete: hasProducts },
+    { label: 'Inputs', target: '#creative-inputs-panel', complete: hasProducts },
+    { label: 'Concept', target: '#concept-board', complete: conceptComplete },
+    { label: 'Blueprint', target: '#creative-blueprint-panel', complete: hasConcept },
+    { label: 'Storyboard', target: '#storyboard-panel', complete: storyboardComplete },
+    { label: 'AI Director', target: '#ai-director-panel', complete: hasConcept },
+    { label: 'Generate', target: '#legacy-image-workspace', complete: promptPlanComplete },
   ];
 
   return `
     <div class="creative-step-flow" aria-label="Step Flow">
       <div class="step-flow-list">
-        ${steps.map(([label, complete]) => `<span class="${complete ? 'complete' : ''}">${escapeHtml(label)}</span>`).join('')}
+        ${steps.map((step) => `
+          <button class="${step.complete ? 'complete' : ''}" data-step-flow-target="${escapeHtml(step.target)}" type="button">${escapeHtml(step.label)}</button>
+        `).join('')}
       </div>
       <p>Next Step: ${escapeHtml(nextStep)}</p>
     </div>
@@ -3082,7 +3087,7 @@ function renderBlueprintPanel(savedProducts = []) {
   ];
 
   return `
-    <section class="studio-card blueprint-panel">
+    <section class="studio-card blueprint-panel" id="creative-blueprint-panel">
       <div class="studio-section-heading">
         <span class="studio-kicker">Creative Blueprint Placeholder</span>
         <h2>Creative Blueprint</h2>
@@ -3134,7 +3139,7 @@ function renderDirectorPanel(savedProducts = []) {
   });
 
   return `
-    <aside class="studio-panel director-panel" aria-label="AI Director Panel">
+    <aside class="studio-panel director-panel" id="ai-director-panel" aria-label="AI Director Panel">
       <div class="studio-panel-heading">
         <span class="studio-kicker">AI Director Engine</span>
         <h2>AI Director Analysis</h2>
@@ -3166,7 +3171,7 @@ function renderCreativeInputsPanel(savedProducts) {
     : '<p class="studio-empty-note">No selected products found. Return to Product Command Center to add product context.</p>';
 
   return `
-    <aside class="studio-panel creative-inputs-panel" aria-label="Creative Inputs">
+    <aside class="studio-panel creative-inputs-panel" id="creative-inputs-panel" aria-label="Creative Inputs">
       <div class="studio-panel-heading">
         <span class="studio-kicker">Left Panel</span>
         <h2>Creative Inputs</h2>
@@ -3205,7 +3210,7 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
   return `
     <section class="studio-canvas-panel" aria-label="Creative Canvas">
-      <section class="studio-card concept-board">
+      <section class="studio-card concept-board" id="concept-board">
         <div class="studio-section-heading">
           <span class="studio-kicker">Creative Canvas</span>
           <h2>Concept Board</h2>
@@ -3218,7 +3223,7 @@ function renderCreativeCanvasPanel(savedProducts = []) {
         ${renderConceptComparisonPanel(concepts)}
       </section>
       ${renderBlueprintPanel(savedProducts)}
-      <section class="studio-card storyboard-panel">
+      <section class="studio-card storyboard-panel" id="storyboard-panel">
         <div class="studio-section-heading storyboard-heading">
           <div>
             <span class="studio-kicker">Storyboard Generator Mock</span>
@@ -3284,7 +3289,7 @@ function renderSelectedProductsLoadedSection(savedProducts) {
     : '';
 
   return `
-    <section class="selected-products-loaded-section" aria-label="Selected Products Loaded">
+    <section class="selected-products-loaded-section" id="product-context-bar" aria-label="Selected Products Loaded">
       <div class="selected-products-loaded-heading">
         <div>
           <span class="studio-kicker">Section 1</span>
@@ -3473,7 +3478,7 @@ function renderContentGeneratorLanding() {
     <main class="creative-studio-page">
       ${renderSelectedProductsLoadedSection(savedProducts)}
       ${renderCreativeStudioShell(savedProducts)}
-      <section class="legacy-image-workspace" aria-label="Legacy Image Workspace">
+      <section class="legacy-image-workspace" id="legacy-image-workspace" aria-label="Legacy Image Workspace">
         <div class="legacy-workspace-heading">
           <span class="studio-kicker">Legacy Image Workspace</span>
           <h2>Legacy Image Workspace</h2>
@@ -3539,6 +3544,14 @@ function attachContentGeneratorEvents() {
 
   document.querySelector('#generate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(false));
   document.querySelector('#regenerate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(true));
+
+  document.querySelectorAll('[data-step-flow-target]').forEach((stepButton) => {
+    stepButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      document.querySelector(stepButton.dataset.stepFlowTarget)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
 
   document.querySelectorAll('[data-director-action-id]').forEach((actionButton) => {
     actionButton.addEventListener('click', () => handleDirectorAction(actionButton.dataset.directorActionId));
