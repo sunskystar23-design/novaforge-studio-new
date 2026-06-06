@@ -107,11 +107,14 @@ const stepFlowReferences = appSource.match(/renderCreativeStepFlow/g) || [];
 if (stepFlowReferences.length !== 2) throw new Error(`Expected renderCreativeStepFlow definition plus one call, found ${stepFlowReferences.length}`);
 if (/renderCreativeStudioShell[\s\S]*renderCreativeStepFlow[\s\S]*creative-studio-grid/.test(appSource)) throw new Error('renderCreativeStepFlow must not be called in renderCreativeStudioShell before creative-studio-grid');
 if (!/renderCreativeCanvasPanel[\s\S]*renderCreativeStepFlow/.test(appSource)) throw new Error('renderCreativeStepFlow must be placed inside renderCreativeCanvasPanel');
+const conceptBoardIndex = html.indexOf('id="concept-board"');
+const guidanceStackIndex = html.indexOf('concept-guidance-stack');
 const nextStepIndex = html.indexOf('creative-next-step-strip');
 const stepFlowIndex = html.indexOf('creative-step-flow');
-const conceptBoardIndex = html.indexOf('id="concept-board"');
-if (!(nextStepIndex > -1 && nextStepIndex < stepFlowIndex && stepFlowIndex < conceptBoardIndex)) throw new Error('Creative Canvas order must be next step strip, step flow, then concept board');
-['product-context-bar', 'pcb-left', 'pcb-manage-btn', 'creative-next-step-strip', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
+if (!(conceptBoardIndex > -1 && conceptBoardIndex < guidanceStackIndex && guidanceStackIndex < nextStepIndex && nextStepIndex < stepFlowIndex)) throw new Error('Creative Canvas order must be concept board, guidance stack, next step strip, then step flow');
+const canvasBeforeConcept = html.slice(html.indexOf('creative-canvas-panel'), conceptBoardIndex);
+if (canvasBeforeConcept.includes('creative-step-flow')) throw new Error('creative-step-flow must not be a direct canvas sibling before Concept Board');
+['product-context-bar', 'pcb-left', 'pcb-manage-btn', 'concept-guidance-stack', 'creative-next-step-strip', 'NOVAFORGE Creative Studio', 'Goal first. Prompt last.'].forEach((text) => {
   if (!html.includes(text)) throw new Error(`Missing updated Content Generator marker: ${text}`);
 });
 [

@@ -3228,13 +3228,17 @@ function renderCreativeCanvasPanel(savedProducts = []) {
 
   return `
     <div class="creative-canvas-panel studio-canvas-panel" aria-label="Creative Canvas">
-      ${nextStepStripMarkup}
-      ${stepFlowMarkup}
       <section class="studio-card concept-board" id="concept-board">
         <div class="studio-section-heading">
-          <span class="studio-kicker">Creative Canvas</span>
-          <h2>Concept Board</h2>
-          <p>Three possible directions before prompts are written. Select, compare, favorite, then lock one direction.</p>
+          <div>
+            <span class="studio-kicker">Creative Canvas</span>
+            <h2>Concept Board</h2>
+            <p>Three possible directions before prompts are written. Select, compare, favorite, then lock one direction.</p>
+          </div>
+        </div>
+        <div class="concept-guidance-stack">
+          ${nextStepStripMarkup}
+          ${stepFlowMarkup}
         </div>
         ${renderConceptDecisionBar(concepts)}
         <div class="concept-card-grid">

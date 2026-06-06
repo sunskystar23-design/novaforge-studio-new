@@ -2497,6 +2497,12 @@ h1 {
 }
 
 
+.concept-guidance-stack {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .creative-next-step-strip {
   display: flex;
   align-items: center;
@@ -2515,8 +2521,7 @@ h1 {
   font-size: 0.82rem;
 }
 
-.concept-decision-bar,
-.creative-step-flow {
+.concept-decision-bar {
   display: grid;
   gap: 8px;
   border: 1px solid rgba(157, 245, 229, 0.16);
@@ -2528,12 +2533,10 @@ h1 {
 
 .creative-step-flow {
   position: relative;
-  gap: 7px;
-  margin-bottom: 10px;
-  padding: 10px;
-  background:
-    linear-gradient(90deg, rgba(157, 245, 229, 0.08), rgba(177, 139, 255, 0.06)),
-    rgba(2, 6, 23, 0.2);
+  display: grid;
+  gap: 6px;
+  padding: 0;
+  background: transparent;
 }
 
 .concept-decision-bar {
