@@ -205,6 +205,8 @@ let selectedConceptId = '';
 let generatedStoryboardScenes = [];
 let storyboardVariation = 0;
 let storyboardNotice = '';
+let directorActionNotice = '';
+let promptPlanVisible = false;
 
 function platformImage(platform, title = 'Product Preview') {
   const colors = {
@@ -2083,6 +2085,171 @@ function renderDirectorAnalysisPanel(analysis) {
   `;
 }
 
+
+function generateDirectorActions({ projectGoal: goal = 'Sell Product', selectedProducts: products = [], selectedCreativeTags: tags = [], selectedConcept, storyboard = [], directorAnalysis } = {}) {
+  const selectedProduct = getPrimarySelectedProduct(products);
+  const productTitle = selectedProduct?.title || 'selected product';
+  const tagSummary = tags.length > 0 ? tags.join(', ') : 'current creative direction';
+  const conceptTitle = selectedConcept?.title || 'the selected concept';
+  const storyboardReady = storyboard.length > 0;
+  const strategyLabel = directorAnalysis?.strategy?.split(':')[0] || getGoalStrategy(goal).label;
+
+  return [
+    {
+      id: 'refine-concept',
+      title: 'Refine Concept',
+      description: `Tighten ${conceptTitle} around ${tagSummary} and the ${strategyLabel} goal for ${productTitle}.`,
+      priority: selectedConcept ? 'Medium' : 'High',
+      actionType: 'Concept Direction',
+      buttonLabel: 'Refine Concept',
+    },
+    {
+      id: 'adjust-storyboard',
+      title: 'Adjust Storyboard',
+      description: storyboardReady
+        ? `Review ${storyboard.length} scene(s) and improve pacing before prompt planning.`
+        : 'Generate or adjust storyboard pacing before moving into prompts.',
+      priority: storyboardReady ? 'Medium' : 'High',
+      actionType: 'Storyboard Direction',
+      buttonLabel: 'Adjust Storyboard',
+    },
+    {
+      id: 'suggest-visual-style',
+      title: 'Suggest Visual Style',
+      description: `Translate ${tagSummary} into a stronger visual language for product framing, lighting, and composition.`,
+      priority: 'Medium',
+      actionType: 'Visual Direction',
+      buttonLabel: 'Suggest Style',
+    },
+    {
+      id: 'suggest-audio-direction',
+      title: 'Suggest Audio Direction',
+      description: `Shape audio around ${selectedConcept?.audioDirection || 'brand-safe pacing, texture, and emotional rhythm'}.`,
+      priority: 'Low',
+      actionType: 'Audio Direction',
+      buttonLabel: 'Suggest Audio',
+    },
+    {
+      id: 'prepare-prompt-plan',
+      title: 'Prepare Prompt Plan',
+      description: `Prepare image, video, audio, and caption prompt directions from ${conceptTitle}.`,
+      priority: storyboardReady ? 'High' : 'Medium',
+      actionType: 'Prompt Planning',
+      buttonLabel: 'Prepare Plan',
+    },
+    {
+      id: 'improve-conversion-angle',
+      title: 'Improve Conversion Angle',
+      description: `Strengthen the conversion path for ${productTitle} without turning the studio into a hard-sell dashboard.`,
+      priority: String(goal).toLowerCase().includes('sell') ? 'High' : 'Medium',
+      actionType: 'Conversion Strategy',
+      buttonLabel: 'Improve Angle',
+    },
+  ];
+}
+
+function getDirectorActionNotice(actionId) {
+  const notices = {
+    'refine-concept': 'AI Director recommends refining concept tone and visual style.',
+    'adjust-storyboard': 'AI Director recommends improving scene pacing.',
+    'suggest-visual-style': 'AI Director suggests stronger visual language based on selected tags.',
+    'suggest-audio-direction': 'AI Director suggests clarifying rhythm, sound texture, and emotional pacing.',
+    'prepare-prompt-plan': 'Prompt Plan placeholder prepared.',
+    'improve-conversion-angle': 'AI Director recommends strengthening product proof and CTA clarity.',
+  };
+
+  return notices[actionId] || 'AI Director action selected.';
+}
+
+function handleDirectorAction(actionId) {
+  directorActionNotice = getDirectorActionNotice(actionId);
+  if (actionId === 'prepare-prompt-plan') promptPlanVisible = true;
+  render();
+}
+
+function createPromptPlanPlaceholder({ selectedProducts: products = [], selectedCreativeTags: tags = [], selectedConcept, directorAnalysis } = {}) {
+  const selectedProduct = getPrimarySelectedProduct(products);
+  const productTitle = selectedProduct?.title || 'selected product';
+  const conceptTitle = selectedConcept?.title || 'active concept';
+  const tagSummary = tags.length > 0 ? tags.join(', ') : 'cinematic product focus';
+  const primaryOpportunity = directorAnalysis?.opportunities?.[0] || `Product showcase angle for ${productTitle}`;
+
+  return [
+    {
+      label: 'Image Prompt Direction',
+      value: `Create premium still frames for ${productTitle} using ${conceptTitle}, ${tagSummary}, and clear product visibility.`,
+    },
+    {
+      label: 'Video Prompt Direction',
+      value: `Build a short sequence from the storyboard with visible product proof, emotional pacing, and ${primaryOpportunity}.`,
+    },
+    {
+      label: 'Audio Direction',
+      value: selectedConcept?.audioDirection || 'Use soft pacing, clean transitions, and brand-safe sound texture.',
+    },
+    {
+      label: 'Caption Direction',
+      value: `Lead with the creative hook, explain the product benefit, and close with a clear next step for ${productTitle}.`,
+    },
+  ];
+}
+
+function renderDirectorActions(actions = []) {
+  const notice = directorActionNotice ? `<p class="director-action-notice">${escapeHtml(directorActionNotice)}</p>` : '';
+
+  return `
+    <section class="director-actions-section" aria-label="AI Director Actions">
+      <div class="director-actions-heading">
+        <span class="studio-kicker">AI Director Actions</span>
+        <h3>Recommended Next Actions</h3>
+        <p>Local mock actions only. Clicking an action updates planning context without calling an API.</p>
+      </div>
+      ${notice}
+      <div class="director-action-grid">
+        ${actions.map((action) => `
+          <article class="director-action-card priority-${escapeHtml(action.priority.toLowerCase())}">
+            <div>
+              <span>${escapeHtml(action.actionType)} · ${escapeHtml(action.priority)} Priority</span>
+              <h4>${escapeHtml(action.title)}</h4>
+              <p>${escapeHtml(action.description)}</p>
+            </div>
+            <button type="button" data-director-action-id="${escapeHtml(action.id)}">${escapeHtml(action.buttonLabel)}</button>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderPromptPlanPlaceholder({ selectedProducts: products = [], selectedCreativeTags: tags = [], selectedConcept, directorAnalysis } = {}) {
+  if (!promptPlanVisible) return '';
+
+  const promptPlanItems = createPromptPlanPlaceholder({
+    selectedProducts: products,
+    selectedCreativeTags: tags,
+    selectedConcept,
+    directorAnalysis,
+  });
+
+  return `
+    <section class="prompt-plan-placeholder" aria-label="Prompt Plan Placeholder">
+      <div class="director-actions-heading">
+        <span class="studio-kicker">Prompt Plan Placeholder</span>
+        <h3>Prompt Plan</h3>
+        <p>Mock plan only. Real image, video, audio, and caption generation are not connected.</p>
+      </div>
+      <div class="prompt-plan-grid">
+        ${promptPlanItems.map((item) => `
+          <article>
+            <span>${escapeHtml(item.label)}</span>
+            <p>${escapeHtml(item.value)}</p>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `;
+}
+
 function getCreativeDirectorSections(activeConcept) {
   if (activeConcept) {
     const tagSummary = getSelectedTagsSummary();
@@ -2269,6 +2436,8 @@ function selectCreativeConcept(conceptId) {
   storyboardVariation = 0;
   storyboardNotice = 'Concept selected. Generate a storyboard to simulate the AI Director workflow.';
   creativeSearchNotice = 'Concept selected. Creative Blueprint and AI Director guidance updated.';
+  directorActionNotice = '';
+  promptPlanVisible = false;
   render();
 }
 
@@ -2395,6 +2564,8 @@ function createStoryboardFromCurrentConcept(regenerate = false) {
     variation: storyboardVariation,
   });
   storyboardNotice = `${regenerate ? 'Regenerated' : 'Generated'} ${generatedStoryboardScenes.length} storyboard scene(s) for ${activeConcept.title}.`;
+  directorActionNotice = '';
+  promptPlanVisible = false;
   render();
 }
 
@@ -2569,6 +2740,20 @@ function renderDirectorPanel(savedProducts = []) {
       </div>
       <div class="director-analysis-list">
         ${renderDirectorAnalysisPanel(analysis)}
+        ${renderDirectorActions(generateDirectorActions({
+          projectGoal,
+          selectedProducts: savedProducts,
+          selectedCreativeTags,
+          selectedConcept: activeConcept,
+          storyboard: generatedStoryboardScenes,
+          directorAnalysis: analysis,
+        }))}
+        ${renderPromptPlanPlaceholder({
+          selectedProducts: savedProducts,
+          selectedCreativeTags,
+          selectedConcept: activeConcept,
+          directorAnalysis: analysis,
+        })}
       </div>
     </aside>
   `;
@@ -2857,6 +3042,8 @@ function attachContentGeneratorEvents() {
     generatedStoryboardScenes = [];
     storyboardNotice = '';
     creativeSearchNotice = 'Project goal updated. Concept Board and Creative Blueprint refreshed.';
+    directorActionNotice = '';
+    promptPlanVisible = false;
     render();
   });
 
@@ -2872,6 +3059,10 @@ function attachContentGeneratorEvents() {
 
   document.querySelector('#generate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(false));
   document.querySelector('#regenerate-storyboard')?.addEventListener('click', () => createStoryboardFromCurrentConcept(true));
+
+  document.querySelectorAll('[data-director-action-id]').forEach((actionButton) => {
+    actionButton.addEventListener('click', () => handleDirectorAction(actionButton.dataset.directorActionId));
+  });
 
   document.querySelectorAll('[data-creative-tag]').forEach((tagButton) => {
     tagButton.addEventListener('click', () => toggleCreativeTag(tagButton.dataset.creativeTag));

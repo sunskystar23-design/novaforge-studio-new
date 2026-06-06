@@ -2135,3 +2135,150 @@ h1 {
   display: grid;
   gap: 10px;
 }
+
+.director-actions-section,
+.prompt-plan-placeholder {
+  border: 1px solid rgba(157, 245, 229, 0.16);
+  border-radius: var(--nf-radius-card);
+  padding: 16px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(157, 245, 229, 0.1), transparent 42%),
+    rgba(15, 23, 42, 0.44);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.director-actions-heading {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.director-actions-heading h3 {
+  margin: 0;
+  color: var(--nf-text-main);
+  font-size: 1rem;
+}
+
+.director-actions-heading p {
+  margin: 0;
+  color: var(--nf-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.director-action-notice {
+  border: 1px solid rgba(91, 124, 250, 0.24);
+  border-radius: 16px;
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: rgba(91, 124, 250, 0.12);
+  color: var(--nf-text-main);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.director-action-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.director-action-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 18px;
+  padding: 13px;
+  background: linear-gradient(145deg, rgba(2, 6, 23, 0.38), rgba(15, 23, 42, 0.58));
+  transition: border-color var(--nf-motion-fast), box-shadow var(--nf-motion-fast), transform var(--nf-motion-fast);
+}
+
+.director-action-card:hover {
+  border-color: rgba(157, 245, 229, 0.28);
+  box-shadow: 0 18px 36px rgba(2, 6, 23, 0.24);
+  transform: translateY(-1px);
+}
+
+.director-action-card span {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 8px;
+  background: rgba(157, 245, 229, 0.08);
+  color: var(--nf-success-mint);
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.director-action-card h4 {
+  margin: 8px 0 6px;
+  color: var(--nf-text-main);
+  font-size: 0.94rem;
+}
+
+.director-action-card p {
+  margin: 0;
+  color: var(--nf-text-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.director-action-card button {
+  justify-self: start;
+  border: 1px solid rgba(226, 232, 240, 0.14);
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--nf-text-main);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  transition: border-color var(--nf-motion-fast), background var(--nf-motion-fast), transform var(--nf-motion-fast);
+}
+
+.director-action-card button:hover,
+.director-action-card button:focus-visible {
+  border-color: rgba(157, 245, 229, 0.36);
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.28), rgba(37, 197, 255, 0.18));
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.director-action-card.priority-high {
+  border-color: rgba(255, 122, 217, 0.18);
+}
+
+.director-action-card.priority-high span {
+  background: rgba(255, 122, 217, 0.1);
+  color: var(--nf-accent-pink);
+}
+
+.prompt-plan-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.prompt-plan-grid article {
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(2, 6, 23, 0.3);
+}
+
+.prompt-plan-grid span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--nf-success-mint);
+  font-size: 0.68rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.prompt-plan-grid p {
+  margin: 0;
+  color: var(--nf-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
